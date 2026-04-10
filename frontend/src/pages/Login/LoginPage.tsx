@@ -190,20 +190,6 @@ export const LoginPage: React.FC = () => {
         </Typography>
       </Box>
 
-      <Box
-        sx={{
-          mt: 4,
-          p: 2,
-          bgcolor: alpha('#1976d2', 0.05),
-          borderRadius: 3,
-          border: '1px dashed',
-          borderColor: alpha('#1976d2', 0.2)
-        }}
-      >
-        <Typography variant="caption" color="text.secondary" align="center" display="block">
-          <strong>Accès Démo :</strong><br />
-          admin / admin123 • comptable / claire123
-        </Typography>
       </Box>
     </AuthLayout>
   );

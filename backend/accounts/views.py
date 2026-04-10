@@ -163,12 +163,12 @@ class InitAdminView(views.APIView):
 
         user = User.objects.create_superuser(
             username='admin',
-            email='admin@xschool.cm',
-            password='Admin123!',
+            email='hackdumping@gmail.com',
+            password='@Dumping0305',
             role='admin'
         )
         return response.Response({
             "message": "Admin created successfully",
             "username": "admin",
-            "password": "Admin123!"
+            "password": "@Dumping0305"
         })
