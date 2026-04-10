@@ -43,6 +43,7 @@ urlpatterns = [
     path('api/password-reset/', PasswordResetView.as_view(), name='password_reset'),
     path('api/migrate/', MigrationView.as_view(), name='migrate'),
     path('api/init-admin/', InitAdminView.as_view(), name='init_admin'),
+    path('api/import-data/', DataImportView.as_view(), name='import_data'),
 ]
 
 from django.conf import settings

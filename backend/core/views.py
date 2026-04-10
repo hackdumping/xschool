@@ -1,6 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.http import HttpResponse
+from rest_framework import permissions
+import io
+import tempfile
+import os
 from school.models import Student, Class, SchoolConfiguration
 from finance.models import Payment, Expense, TrancheConfig
 from agenda.models import CalendarEvent
@@ -191,3 +196,66 @@ class MigrationView(APIView):
             return Response({"message": "Migrations successful", "output": result})
         except Exception as e:
             return Response({"message": "Migration failed", "error": str(e)}, status=500)
+
+class DataImportView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        # Return a simple HTML form for uploading the JSON file
+        html = f"""
+        <html>
+        <head><title>XSchool Data Importer</title></head>
+        <body style="font-family: sans-serif; padding: 50px;">
+            <h2>📦 Importation de données (JSON)</h2>
+            <p>Utilisez cette page pour importer votre fichier <code>db.json</code> créé avec <code>dumpdata</code>.</p>
+            <form method="post" enctype="multipart/form-data" style="border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+                <div style="margin-bottom: 15px;">
+                    <label>Jeton de sécurité (MIGRATION_TOKEN) :</label><br>
+                    <input type="password" name="token" style="width: 100%; padding: 8px;" required>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Fichier JSON de données :</label><br>
+                    <input type="file" name="data_file" accept=".json" required>
+                </div>
+                <button type="submit" style="background: #1976d2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+                    Lancer l'importation
+                </button>
+            </form>
+        </body>
+        </html>
+        """
+        return HttpResponse(html)
+
+    def post(self, request):
+        token = request.data.get('token')
+        if token != settings.MIGRATION_TOKEN:
+            return Response({"error": "Invalid token"}, status=403)
+        
+        data_file = request.FILES.get('data_file')
+        if not data_file:
+            return Response({"error": "No file uploaded"}, status=400)
+
+        # Save uploaded file to a temporary location
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp:
+            for chunk in data_file.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        out = io.StringIO()
+        try:
+            # Run loaddata on the temporary file
+            call_command('loaddata', tmp_path, stdout=out)
+            result = out.getvalue()
+            return Response({
+                "message": "Data imported successfully",
+                "output": result
+            })
+        except Exception as e:
+            return Response({
+                "message": "Data import failed",
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=500)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
