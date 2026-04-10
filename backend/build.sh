@@ -1,12 +1,22 @@
 #!/bin/bash
 
-# Install dependencies
-echo "Installing dependencies..."
-pip install -r requirements.txt
+# Exit on error
+set -e
 
-# Run migrations
+echo "Building project..."
+
+# Ensure we have the latest pip
+python3 -m pip install --upgrade pip
+
+# Install dependencies in the build environment
+echo "Installing dependencies..."
+pip3 install -r requirements.txt
+
+# Ensure the static directory exists
+mkdir -p staticfiles
+
+# Run migrations (Optional here as it can also be done via the API)
 echo "Running migrations..."
-python3 manage.py makemigrations --noinput
 python3 manage.py migrate --noinput
 
 # Collect static files
