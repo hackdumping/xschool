@@ -20,7 +20,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   Grid,
   Tooltip,

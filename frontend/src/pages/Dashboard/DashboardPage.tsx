@@ -37,7 +37,6 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip as RechartsTooltip, 
-  Legend, 
   ResponsiveContainer, 
   Cell 
 } from 'recharts';
@@ -601,7 +600,7 @@ export const DashboardPage: React.FC = () => {
                       }}
                     />
                     <Bar dataKey="students" name="Nombre d'élèves" radius={[4, 4, 0, 0]}>
-                      {chartData.general.map((entry, index) => (
+                      {chartData.general.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={theme.palette.primary.main} />
                       ))}
                     </Bar>
@@ -645,7 +644,7 @@ export const DashboardPage: React.FC = () => {
                       }}
                     />
                     <Bar dataKey="students" name="Nombre d'élèves" radius={[4, 4, 0, 0]}>
-                      {chartData.technique.map((entry, index) => (
+                      {chartData.technique.map((_entry, index) => (
                         <Cell key={`cell-tech-${index}`} fill="#E91E63" />
                       ))}
                     </Bar>

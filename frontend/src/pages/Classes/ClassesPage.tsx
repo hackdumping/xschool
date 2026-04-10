@@ -15,7 +15,6 @@ import {
   DialogActions,
   List,
   ListItem,
-  ListItemText,
   Divider,
   Tooltip,
   TextField,

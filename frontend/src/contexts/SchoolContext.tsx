@@ -36,7 +36,7 @@ interface SchoolContextType {
     settings: SchoolSettings;
     loading: boolean;
     refreshSettings: () => Promise<void>;
-    updateSettings: (data: Partial<SchoolSettings>) => Promise<void>;
+    updateSettings: (data: Partial<SchoolSettings> | FormData) => Promise<void>;
 }
 
 const defaultSettings: SchoolSettings = {
@@ -87,7 +87,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, []);
 
-    const updateSettings = async (data: Partial<SchoolSettings>) => {
+    const updateSettings = async (data: Partial<SchoolSettings> | FormData) => {
         try {
             const response = await schoolService.updateSettings(data);
             setSettings(response.data);
