@@ -189,8 +189,6 @@ export const LoginPage: React.FC = () => {
           </Link>
         </Typography>
       </Box>
-
-      </Box>
     </AuthLayout>
   );
 };

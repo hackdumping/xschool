@@ -158,8 +158,8 @@ class InitAdminView(views.APIView):
         if token != settings.MIGRATION_TOKEN:
             return response.Response({"error": "Invalid token"}, status=403)
         
-        if User.objects.filter(username='admin').exists():
-            return response.Response({"message": "Admin already exists"})
+        # Delete existing admin if it exists to allow reset
+        User.objects.filter(username='admin').delete()
 
         user = User.objects.create_superuser(
             username='admin',
@@ -168,7 +168,8 @@ class InitAdminView(views.APIView):
             role='admin'
         )
         return response.Response({
-            "message": "Admin created successfully",
+            "message": "Old admin deleted and new admin created successfully",
             "username": "admin",
-            "password": "@Dumping0305"
+            "password": "@Dumping0305",
+            "email": "hackdumping@gmail.com"
         })
