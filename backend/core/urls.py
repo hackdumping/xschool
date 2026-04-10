@@ -15,7 +15,7 @@ from finance.views import (
     TrancheConfigViewSet, PaymentViewSet, ExpenseViewSet, TuitionTemplateViewSet
 )
 from agenda.views import CalendarEventViewSet
-from core.views import DashboardStatsView, MigrationView
+from core.views import DashboardStatsView, MigrationView, DataImportView
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
