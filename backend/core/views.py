@@ -208,7 +208,7 @@ class DataImportView(APIView):
         <body style="font-family: sans-serif; padding: 50px;">
             <h2>📦 Importation de données (JSON)</h2>
             <p>Utilisez cette page pour importer votre fichier <code>db.json</code> créé avec <code>dumpdata</code>.</p>
-            <form method="post" enctype="multipart/form-data" style="border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+            <form method="post" enctype="multipart/form-data" style="border: 1px solid #ccc; padding: 20px; border-radius: 8px; max-width: 500px;">
                 <div style="margin-bottom: 15px;">
                     <label>Jeton de sécurité (MIGRATION_TOKEN) :</label><br>
                     <input type="password" name="token" style="width: 100%; padding: 8px;" required>
@@ -217,7 +217,16 @@ class DataImportView(APIView):
                     <label>Fichier JSON de données :</label><br>
                     <input type="file" name="data_file" accept=".json" required>
                 </div>
-                <button type="submit" style="background: #1976d2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+                <div style="margin-bottom: 15px; padding: 10px; background: #fff3e0; border-radius: 4px;">
+                    <input type="checkbox" name="clear_data" id="clear_data">
+                    <label for="clear_data" style="color: #e65100; font-weight: bold;">
+                        ⚠️ Vider la base de données avant l'importation
+                    </label>
+                    <p style="margin: 5px 0 0 25px; font-size: 0.8em; color: #666;">
+                        Recommandé pour éviter les erreurs "Duplicate Key" si vous importez tout votre projet local.
+                    </p>
+                </div>
+                <button type="submit" style="background: #1976d2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 100%;">
                     Lancer l'importation
                 </button>
             </form>
@@ -234,6 +243,24 @@ class DataImportView(APIView):
         data_file = request.FILES.get('data_file')
         if not data_file:
             return Response({"error": "No file uploaded"}, status=400)
+
+        clear_data = request.data.get('clear_data') == 'on'
+
+        if clear_data:
+            # Clear main application data to avoid integrity errors
+            from school.models import Student, Class, SchoolConfiguration
+            from accounts.models import User
+            from finance.models import Payment, Expense
+            from agenda.models import CalendarEvent
+            
+            # Order matters for foreign keys
+            CalendarEvent.objects.all().delete()
+            Payment.objects.all().delete()
+            Expense.objects.all().delete()
+            Student.objects.all().delete()
+            Class.objects.all().delete()
+            User.objects.all().delete()
+            print("Database cleared as requested.")
 
         # Save uploaded file to a temporary location
         with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp:
