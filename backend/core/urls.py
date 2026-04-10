@@ -15,7 +15,7 @@ from finance.views import (
     TrancheConfigViewSet, PaymentViewSet, ExpenseViewSet, TuitionTemplateViewSet
 )
 from agenda.views import CalendarEventViewSet
-from core.views import DashboardStatsView
+from core.views import DashboardStatsView, MigrationView
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
@@ -41,6 +41,7 @@ urlpatterns = [
     path('api/dashboard/', DashboardStatsView.as_view(), name='dashboard_stats'),
     path('api/register/', SignUpView.as_view(), name='register'),
     path('api/password-reset/', PasswordResetView.as_view(), name='password_reset'),
+    path('api/migrate/', MigrationView.as_view(), name='migrate'),
 ]
 
 from django.conf import settings

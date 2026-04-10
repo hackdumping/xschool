@@ -7,6 +7,8 @@ from agenda.models import CalendarEvent
 from django.db.models import Sum, Q, Count
 from django.utils import timezone
 from datetime import timedelta
+from django.core.management import call_command
+import io
 
 class DashboardStatsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -149,3 +151,40 @@ class DashboardStatsView(APIView):
             'alerts': alerts,
             'classSummaries': class_summaries
         })
+
+from django.conf import settings
+
+class MigrationView(APIView):
+    permission_classes = [] # Public but secured by token
+
+    def get(self, request):
+        token = request.GET.get('token')
+        if token != settings.MIGRATION_TOKEN:
+            return Response({"error": "Invalid token"}, status=403)
+        
+        out = io.StringIO()
+        try:
+            call_command('migrate', interactive=False, stdout=out)
+            result = out.getvalue()
+            return Response({
+                "message": "Migrations successful", 
+                "output": result
+            })
+        except Exception as e:
+            return Response({
+                "message": "Migration failed", 
+                "error": str(e)
+            }, status=500)
+
+    def post(self, request):
+        # Keep post as backup for staff
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return Response({"error": "Unauthorized"}, status=403)
+        
+        out = io.StringIO()
+        try:
+            call_command('migrate', interactive=False, stdout=out)
+            result = out.getvalue()
+            return Response({"message": "Migrations successful", "output": result})
+        except Exception as e:
+            return Response({"message": "Migration failed", "error": str(e)}, status=500)
