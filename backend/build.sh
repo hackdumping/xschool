@@ -5,22 +5,24 @@ set -e
 
 echo "Building project..."
 
-# Ensure we have the latest pip
-python3 -m pip install --upgrade pip
+# Create a virtual environment to isolate dependencies and avoid PEP 668 error
+python3 -m venv venv
+source venv/bin/activate
 
-# Install dependencies in the build environment
+# Install dependencies in the virtual environment
 echo "Installing dependencies..."
-pip3 install -r requirements.txt
+pip install --upgrade pip
+pip install -r requirements.txt
 
 # Ensure the static directory exists
 mkdir -p staticfiles
 
-# Run migrations (Optional here as it can also be done via the API)
+# Run migrations
 echo "Running migrations..."
-python3 manage.py migrate --noinput
+python manage.py migrate --noinput
 
 # Collect static files
 echo "Collecting static files..."
-python3 manage.py collectstatic --noinput --clear
+python manage.py collectstatic --noinput --clear
 
 echo "Build process completed successfully!"
