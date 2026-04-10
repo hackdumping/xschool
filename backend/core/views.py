@@ -153,6 +153,7 @@ class DashboardStatsView(APIView):
         })
 
 from django.conf import settings
+import traceback
 
 class MigrationView(APIView):
     permission_classes = [] # Public but secured by token
@@ -171,9 +172,11 @@ class MigrationView(APIView):
                 "output": result
             })
         except Exception as e:
+            error_traceback = traceback.format_exc()
             return Response({
                 "message": "Migration failed", 
-                "error": str(e)
+                "error": str(e),
+                "traceback": error_traceback
             }, status=500)
 
     def post(self, request):
