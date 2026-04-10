@@ -8,8 +8,24 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          bgcolor: 'background.default'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (!isAuthenticated && !user) {
     // Redirect to login if not authenticated

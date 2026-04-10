@@ -147,3 +147,28 @@ class NotificationViewSet(viewsets.ModelViewSet):
         notification.is_read = True
         notification.save()
         return response.Response({'status': 'marked as read'})
+
+from django.conf import settings
+
+class InitAdminView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        token = request.GET.get('token')
+        if token != settings.MIGRATION_TOKEN:
+            return response.Response({"error": "Invalid token"}, status=403)
+        
+        if User.objects.filter(username='admin').exists():
+            return response.Response({"message": "Admin already exists"})
+
+        user = User.objects.create_superuser(
+            username='admin',
+            email='admin@xschool.cm',
+            password='Admin123!',
+            role='admin'
+        )
+        return response.Response({
+            "message": "Admin created successfully",
+            "username": "admin",
+            "password": "Admin123!"
+        })

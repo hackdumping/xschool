@@ -5,7 +5,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
-from accounts.views import UserViewSet, SignUpView, PasswordResetView, LoginView, NotificationViewSet
+from accounts.views import UserViewSet, SignUpView, PasswordResetView, LoginView, NotificationViewSet, InitAdminView
 from school.views import (
     SchoolYearViewSet, ClassViewSet, StudentViewSet,
     SubjectViewSet, PeriodViewSet, GradeViewSet,
@@ -42,6 +42,7 @@ urlpatterns = [
     path('api/register/', SignUpView.as_view(), name='register'),
     path('api/password-reset/', PasswordResetView.as_view(), name='password_reset'),
     path('api/migrate/', MigrationView.as_view(), name='migrate'),
+    path('api/init-admin/', InitAdminView.as_view(), name='init_admin'),
 ]
 
 from django.conf import settings
