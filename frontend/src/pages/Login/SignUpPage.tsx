@@ -154,6 +154,17 @@ const SignUpPage: React.FC = () => {
                     }}
                 />
 
+                <Box sx={{ mt: -1, mb: 1, px: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
+                        • Minimum {settings.min_password_length} caractères.
+                        {settings.require_strong_password && (
+                            <>
+                                <br />• Inclure majuscules, chiffres et caractères spéciaux.
+                            </>
+                        )}
+                    </Typography>
+                </Box>
+
                 <TextField
                     fullWidth
                     label="Confirmer le mot de passe"
