@@ -166,7 +166,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 import os
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+if DEBUG:
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+else:
+    # On Vercel, only /tmp is writable
+    MEDIA_ROOT = '/tmp/media'
+    if not os.path.exists(MEDIA_ROOT):
+        try:
+            os.makedirs(MEDIA_ROOT, exist_ok=True)
+        except:
+            pass
 
 # Token for URL-based migrations
 MIGRATION_TOKEN = os.environ.get('MIGRATION_TOKEN', 'xschool-safe-migrate-2026')
