@@ -61,38 +61,7 @@ const SignUpPage: React.FC = () => {
                 navigate('/login');
             }, 3000);
         } catch (err: any) {
-            const data = err.response?.data;
-            let errorMessage = "Une erreur est survenue lors de l'inscription.";
-
-            if (data) {
-                if (typeof data === 'string') {
-                    errorMessage = data;
-                } else if (data.detail) {
-                    errorMessage = data.detail;
-                } else {
-                    // Handle field-specific errors
-                    const fieldErrors = Object.entries(data)
-                        .map(([field, errors]) => {
-                            const fieldName = {
-                                username: "Nom d'utilisateur",
-                                email: "Email",
-                                first_name: "Prénom",
-                                last_name: "Nom",
-                                password: "Mot de passe",
-                                password_confirm: "Confirmation"
-                            }[field] || field;
-                            
-                            const messages = Array.isArray(errors) ? errors.join(' ') : errors;
-                            return `${fieldName} : ${messages}`;
-                        })
-                        .join('\n');
-                    
-                    if (fieldErrors) {
-                        errorMessage = fieldErrors;
-                    }
-                }
-            }
-            setError(errorMessage);
+            setError(err.response?.data?.detail || "Une erreur est survenue lors de l'inscription.");
         } finally {
             setLoading(false);
         }
