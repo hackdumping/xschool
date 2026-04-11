@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
+  updateUser: (userData: User) => void;
   hasRole: (roles: UserRole[]) => boolean;
 }
 
@@ -51,6 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sessionStorage.clear();
   }, []);
 
+  const updateUser = useCallback((userData: User) => {
+    setUser(userData);
+    const storage = localStorage.getItem('rememberMe') === 'true' ? localStorage : sessionStorage;
+    storage.setItem('user', JSON.stringify(userData));
+  }, []);
+
   const hasRole = useCallback((roles: UserRole[]): boolean => {
     if (!user) return false;
     return roles.includes(user.role);
@@ -64,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         login,
         logout,
+        updateUser,
         hasRole,
       }}
     >

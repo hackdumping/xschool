@@ -26,7 +26,7 @@ import { authService } from '@/services/api';
 import { useNotification } from '@/contexts/NotificationContext';
 
 export const ProfilePage: React.FC = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const { showNotification } = useNotification();
 
     const [formData, setFormData] = useState({
@@ -38,7 +38,7 @@ export const ProfilePage: React.FC = () => {
 
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(
-        user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`) : null
+        user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `https://${window.location.host}${user.avatar}`) : null
     );
 
     const [passwordData, setPasswordData] = useState({
@@ -68,14 +68,15 @@ export const ProfilePage: React.FC = () => {
         e.preventDefault();
         try {
             const data = new FormData();
-            data.append('first_name', formData.firstName);
-            data.append('last_name', formData.lastName);
+            data.append('firstName', formData.firstName);
+            data.append('lastName', formData.lastName);
             data.append('email', formData.email);
             if (avatarFile) {
                 data.append('avatar', avatarFile);
             }
 
-            await authService.updateProfile(data);
+            const response = await authService.updateProfile(data);
+            updateUser(response.data);
             showNotification('Profil mis à jour avec succès', 'success');
         } catch (error) {
             console.error('Failed to update profile', error);
