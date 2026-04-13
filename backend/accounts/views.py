@@ -141,6 +141,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
         self.get_queryset().update(is_read=True)
         return response.Response({'status': 'all marked as read'})
 
+    @decorators.action(detail=False, methods=['post'], url_path='delete-all')
+    def delete_all(self, request):
+        self.get_queryset().delete()
+        return response.Response({'status': 'all notifications deleted'})
+
     @decorators.action(detail=True, methods=['post'], url_path='mark-read')
     def mark_read(self, request, pk=None):
         notification = self.get_object()

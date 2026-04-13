@@ -42,7 +42,7 @@ import {
   Dashboard as DashboardIcon,
   School as SchoolIcon,
   People as PeopleIcon,
-  Grade as GradeIcon,
+
   AccountBalance as AccountBalanceIcon,
   CalendarMonth as CalendarIcon,
   Settings as SettingsIcon,
@@ -57,6 +57,7 @@ import {
   Info as InfoIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
@@ -79,7 +80,7 @@ const navItems: NavItem[] = [
   { label: 'Tableau de bord', icon: <DashboardIcon />, path: '/dashboard' },
   { label: 'Élèves', icon: <PeopleIcon />, path: '/students' },
   { label: 'Classes', icon: <SchoolIcon />, path: '/classes' },
-  { label: 'Notes', icon: <GradeIcon />, path: '/grades' },
+
   {
     label: 'Finances',
     icon: <AccountBalanceIcon />,
@@ -116,6 +117,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
     unreadCount,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
     loading: loadingNotifications
   } = useNotification();
 
@@ -392,11 +395,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
             >
               <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'background.neutral' }}>
                 <Typography variant="subtitle1" fontWeight={800}>Notifications</Typography>
-                {unreadCount > 0 && (
-                  <Button size="small" startIcon={<DoneAllIcon />} onClick={markAllAsRead}>
-                    Tout lire
-                  </Button>
-                )}
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  {unreadCount > 0 && (
+                    <Button size="small" startIcon={<DoneAllIcon />} onClick={markAllAsRead} sx={{ fontSize: '0.75rem' }}>
+                      Tout lire
+                    </Button>
+                  )}
+                  {notifications.length > 0 && (
+                    <Button size="small" color="error" onClick={deleteAllNotifications} sx={{ fontSize: '0.75rem' }}>
+                      Supprimer tout
+                    </Button>
+                  )}
+                </Box>
               </Box>
               <Divider />
               <Box sx={{ flex: 1, overflowY: 'auto', py: 1 }}>
@@ -415,6 +425,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
                       <ListItem
                         key={notification.id}
                         disablePadding
+                        secondaryAction={
+                          <IconButton 
+                            edge="end" 
+                            size="small" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(notification.id);
+                            }}
+                            sx={{ opacity: 0.5, '&:hover': { opacity: 1, color: 'error.main' } }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 18 }} /> 
+                          </IconButton>
+                        }
                         sx={{
                           bgcolor: notification.is_read ? 'transparent' : alpha(theme.palette.primary.main, 0.04),
                           borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
@@ -425,7 +448,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
                           onClick={() => {
                             if (!notification.is_read) markAsRead(notification.id);
                           }}
-                          sx={{ py: 1.5 }}
+                          sx={{ py: 1.5, pr: 6 }}
                         >
                           <ListItemIcon sx={{ minWidth: 40 }}>
                             {notification.type === 'success' ? <SuccessIcon color="success" fontSize="small" /> :

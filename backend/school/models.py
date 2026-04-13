@@ -78,7 +78,7 @@ class Student(models.Model):
     
     @property
     def total_paid(self):
-        return self.payments.aggregate(models.Sum('amount_paid'))['amount_paid__sum'] or 0
+        return self.payments.filter(tranche__school_class=self.school_class).aggregate(models.Sum('amount_paid'))['amount_paid__sum'] or 0
 
 class Subject(models.Model):
     name = models.CharField(max_length=100)

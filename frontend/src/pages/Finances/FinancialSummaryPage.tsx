@@ -89,7 +89,7 @@ export const FinancialSummaryPage: React.FC = () => {
       balance: 0,
     };
 
-    const expected = classSummaries.reduce((acc, curr) => acc + curr.totalExpected, 0);
+    const expected = classSummaries.reduce((acc, curr) => acc + Number(curr.totalExpected), 0);
     const paid = stats.totalIncome || 0;
 
     return {

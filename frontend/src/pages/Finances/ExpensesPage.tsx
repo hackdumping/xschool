@@ -21,6 +21,7 @@ import {
   LinearProgress,
   useTheme,
   useMediaQuery,
+  Menu,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -31,9 +32,11 @@ import {
   FilterList as FilterListIcon,
   Receipt as ReceiptIcon,
   TrendingDown as TrendingDownIcon,
+  Edit as EditIcon,
+  MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
-import { DataGrid } from '@mui/x-data-grid';
-import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import type { GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers';
 import { financeService } from '@/services/api';
 import type { Expense } from '@/types';
@@ -74,9 +77,34 @@ export const ExpensesPage: React.FC = () => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [openExportDialog, setOpenExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState('excel');
+  const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [expensesToDelete, setExpensesToDelete] = useState<string[]>([]);
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState<Record<string, boolean>>({});
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuExpense, setMenuExpense] = useState<Expense | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, expense: Expense) => {
+    setMenuAnchorEl(event.currentTarget);
+    setMenuExpense(expense);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setMenuExpense(null);
+  };
+
+  // Initialize column visibility based on isMobile
+  useEffect(() => {
+    setColumnVisibilityModel({
+      recordedBy: !isMobile,
+      category: !isMobile,
+    });
+  }, [isMobile]);
 
   // New expense form state
   const [newExpense, setNewExpense] = useState({
+    id: '' as string | undefined,
     description: '',
     amount: '',
     category: '',
@@ -117,13 +145,13 @@ export const ExpensesPage: React.FC = () => {
 
   // Calculate totals
   const totalExpenses = useMemo(() => {
-    return filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    return filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
   }, [filteredExpenses]);
 
   const expensesByCategory = useMemo(() => {
     const grouped: { [key: string]: number } = {};
     filteredExpenses.forEach((expense) => {
-      grouped[expense.category] = (grouped[expense.category] || 0) + expense.amount;
+      grouped[expense.category] = (grouped[expense.category] || 0) + Number(expense.amount);
     });
     return Object.entries(grouped)
       .map(([category, amount]) => ({ category, amount }))
@@ -136,18 +164,43 @@ export const ExpensesPage: React.FC = () => {
   };
 
   const handleAddExpense = () => {
+    setNewExpense({
+      id: undefined,
+      description: '',
+      amount: '',
+      category: '',
+      date: new Date(),
+    });
+    setOpenAddDialog(true);
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+    setNewExpense({
+      id: expense.id,
+      description: expense.description,
+      amount: String(expense.amount),
+      category: expense.category,
+      date: new Date(expense.date),
+    });
     setOpenAddDialog(true);
   };
 
   const handleSaveExpense = async () => {
     try {
-      await financeService.createExpense({
+      const expenseData = {
         description: newExpense.description,
         amount: Number(newExpense.amount),
         category: newExpense.category,
         date: newExpense.date.toISOString().split('T')[0],
-      });
-      showNotification('Dépense enregistrée avec succès', 'success');
+      };
+
+      if (newExpense.id) {
+        await financeService.updateExpense(newExpense.id, expenseData);
+        showNotification('Dépense modifiée avec succès', 'success');
+      } else {
+        await financeService.createExpense(expenseData);
+        showNotification('Dépense enregistrée avec succès', 'success');
+      }
       setOpenAddDialog(false);
       // Refresh
       const response = await financeService.getExpenses();
@@ -158,19 +211,41 @@ export const ExpensesPage: React.FC = () => {
     }
   };
 
-  const handleDeleteExpense = async (expense: Expense) => {
-    if (confirm(`Voulez-vous supprimer la dépense "${expense.description}" ?`)) {
-      try {
-        await financeService.deleteExpense(expense.id);
-        showNotification('Dépense supprimée', 'success');
-        // Refresh
-        const response = await financeService.getExpenses();
-        setExpensesList(response.data);
-      } catch (error) {
-        console.error('Failed to delete expense', error);
-        showNotification('Erreur lors de la suppression', 'error');
-      }
+
+
+
+  const handleDeleteConfirm = (ids: string[]) => {
+    setExpensesToDelete(ids);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(expensesToDelete.map((id: string) => financeService.deleteExpense(id)));
+      showNotification(`${expensesToDelete.length} dépense(s) supprimée(s)`, 'success');
+      setDeleteDialogOpen(false);
+      setSelectedRows({ type: 'include', ids: new Set() });
+      // Refresh
+      const response = await financeService.getExpenses();
+      setExpensesList(response.data);
+    } catch (error) {
+      console.error('Failed to delete expenses', error);
+      showNotification('Erreur lors de la suppression', 'error');
     }
+  };
+
+  const getSelectedCount = () => {
+    if (selectedRows.type === 'exclude') {
+      return filteredExpenses.length - selectedRows.ids.size;
+    }
+    return selectedRows.ids.size;
+  };
+
+  const getSelectedIds = (): string[] => {
+    if (selectedRows.type === 'exclude') {
+      return filteredExpenses.filter(e => !selectedRows.ids.has(e.id)).map(e => e.id);
+    }
+    return Array.from(selectedRows.ids) as string[];
   };
 
   const handleExport = () => {
@@ -181,7 +256,11 @@ export const ExpensesPage: React.FC = () => {
     setOpenExportDialog(false);
     showNotification('Préparation de l\'exportation...', 'info');
 
-    const tableData = filteredExpenses.map(e => ({
+    const dataToExport = getSelectedCount() > 0 
+      ? filteredExpenses.filter(e => getSelectedIds().includes(e.id))
+      : filteredExpenses;
+
+    const tableData = dataToExport.map(e => ({
       'Date': new Date(e.date).toLocaleDateString('fr-FR'),
       'Description': e.description,
       'Catégorie': e.category,
@@ -306,22 +385,16 @@ export const ExpensesPage: React.FC = () => {
       width: 100,
       sortable: false,
       filterable: false,
-      renderCell: (params: GridRenderCellParams) => (
+      renderCell: (params: GridRenderCellParams<Expense>) => (
         <Box>
           <Tooltip title="Voir détails">
             <IconButton size="small" onClick={() => handleViewExpense(params.row)}>
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Supprimer">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => handleDeleteExpense(params.row)}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <IconButton size="small" onClick={(e) => handleMenuOpen(e, params.row)}>
+            <MoreVertIcon fontSize="small" />
+          </IconButton>
         </Box>
       ),
     },
@@ -473,6 +546,37 @@ export const ExpensesPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Bulk Actions */}
+      {getSelectedCount() > 0 && (
+        <Card sx={{ mb: 2, borderRadius: 3, bgcolor: 'error.container', color: 'error.main', border: '1px solid', borderColor: 'error.light' }}>
+          <CardContent sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {getSelectedCount()} dépense(s) sélectionnée(s)
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<FileDownloadIcon />}
+                onClick={handleExport}
+              >
+                Exporter
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => handleDeleteConfirm(getSelectedIds())}
+              >
+                Supprimer Tout
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
       <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <DataGrid
           rows={filteredExpenses}
@@ -483,11 +587,20 @@ export const ExpensesPage: React.FC = () => {
               paginationModel: { pageSize: 10 },
             },
           }}
-          columnVisibilityModel={{
-            recordedBy: !isMobile,
-            category: !isMobile,
+          columnVisibilityModel={columnVisibilityModel}
+          onColumnVisibilityModelChange={(newModel) => setColumnVisibilityModel(newModel)}
+          slots={{ toolbar: GridToolbar }}
+          slotProps={{
+            toolbar: {
+              showQuickFilter: true,
+              quickFilterProps: { debounceMs: 500 },
+            },
           }}
           pageSizeOptions={[5, 10, 25, 50]}
+          checkboxSelection
+          disableRowSelectionOnClick
+          onRowSelectionModelChange={setSelectedRows}
+          rowSelectionModel={selectedRows}
           sx={{
             border: 'none',
             '& .MuiDataGrid-columnHeaders': {
@@ -560,7 +673,7 @@ export const ExpensesPage: React.FC = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Nouvelle Dépense</DialogTitle>
+        <DialogTitle>{newExpense.id ? 'Modifier une Dépense' : 'Nouvelle Dépense'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid size={{ xs: 12 }}>
@@ -644,6 +757,50 @@ export const ExpensesPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirmer la suppression</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mt: 1 }}>
+            Êtes-vous sûr de vouloir supprimer {expensesToDelete.length} dépense(s) ? Cette action est irréversible.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
+          <Button onClick={handleBulkDelete} color="error" variant="contained">Supprimer</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={Boolean(menuAnchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem
+          onClick={() => {
+            if (menuExpense) {
+              handleEditExpense(menuExpense);
+              handleMenuClose();
+            }
+          }}
+        >
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Modifier
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (menuExpense) {
+              handleDeleteConfirm([menuExpense.id]);
+              handleMenuClose();
+            }
+          }}
+          sx={{ color: 'error.main' }}
+        >
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          Supprimer
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };

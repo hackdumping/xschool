@@ -40,7 +40,7 @@ class StudentSerializer(serializers.ModelSerializer):
         fields = ('id', 'firstName', 'lastName', 'matricule', 'dateOfBirth', 'placeOfBirth', 'isRepeating', 'gender', 'address', 'parentName', 'parentPhone', 'parentEmail', 'classId', 'enrollmentDate', 'status', 'className', 'paymentStatus', 'totalPaid', 'totalDue')
 
     def get_totalPaid(self, obj):
-        return obj.payments.aggregate(models.Sum('amount_paid'))['amount_paid__sum'] or 0
+        return obj.total_paid
 
     def get_totalDue(self, obj):
         return obj.total_due

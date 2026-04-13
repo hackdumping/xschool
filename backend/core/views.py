@@ -9,6 +9,7 @@ import os
 from school.models import Student, Class, SchoolConfiguration
 from finance.models import Payment, Expense, TrancheConfig
 from agenda.models import CalendarEvent
+from accounts.models import Notification
 from django.db.models import Sum, Q, Count
 from django.utils import timezone
 from datetime import timedelta
@@ -139,12 +140,17 @@ class DashboardStatsView(APIView):
             }
             class_summaries.append(summary)
 
+        # Sync to persistent notifications
+        self.sync_alerts_to_notifications(request.user, alerts)
+
         return Response({
             'totalStudents': total_students,
             'totalClasses': total_classes,
             'globalRecoveryRate': round(recovery_rate, 1),
             'generalBalance': float(total_income - total_expenses),
             'totalIncome': total_income,
+            'totalExpected': total_expected,
+            'totalRemaining': max(0, total_expected - total_income),
             'totalExpenses': total_expenses,
             'activeAlerts': len(alerts),
             'pendingPayments': pending_count,
@@ -156,6 +162,34 @@ class DashboardStatsView(APIView):
             'alerts': alerts,
             'classSummaries': class_summaries
         })
+
+    def sync_alerts_to_notifications(self, user, alerts):
+        """Helper to persist dynamic alerts as notifications"""
+        severity_map = {
+            'high': 'error',
+            'medium': 'warning',
+            'low': 'info',
+            'info': 'info'
+        }
+        
+        # Threshold to avoid notification spam (last 24h)
+        time_threshold = timezone.now() - timedelta(hours=24)
+        
+        for alert in alerts:
+            # Check if matching notification already exists recently
+            exists = Notification.objects.filter(
+                user=user,
+                title=alert['title'],
+                created_at__gte=time_threshold
+            ).exists()
+            
+            if not exists:
+                Notification.objects.create(
+                    user=user,
+                    title=alert['title'],
+                    message=alert['description'],
+                    type=severity_map.get(alert['severity'], 'info')
+                )
 
 from django.conf import settings
 import traceback

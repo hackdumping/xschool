@@ -13,6 +13,7 @@ interface NotificationContextType {
   markAsRead: (id: number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: number) => Promise<void>;
+  deleteAllNotifications: () => Promise<void>;
   loading: boolean;
 }
 
@@ -73,6 +74,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [showNotification]);
 
+  const deleteAllNotifications = useCallback(async () => {
+    try {
+      await notificationService.deleteAllNotifications();
+      setNotifications([]);
+    } catch (error) {
+      showNotification('Erreur lors de la suppression groupée', 'error');
+    }
+  }, [showNotification]);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
@@ -102,6 +112,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       markAsRead,
       markAllAsRead,
       deleteNotification,
+      deleteAllNotifications,
       loading
     }}>
       {children}

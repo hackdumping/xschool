@@ -132,6 +132,10 @@ export const notificationService = {
         const response = await api.post('notifications/mark-all-read/');
         return response.data;
     },
+    deleteAllNotifications: async () => {
+        const response = await api.post('notifications/delete-all/');
+        return response.data;
+    },
     deleteNotification: async (id: number) => {
         const response = await api.delete(`notifications/${id}/`);
         return response.data;
@@ -145,6 +149,7 @@ export const schoolService = {
     createStudent: (data: any) => api.post('students/', data),
     updateStudent: (id: string, data: any) => api.put(`students/${id}/`, data),
     deleteStudent: (id: string) => api.delete(`students/${id}/`),
+    bulkPromoteStudents: (data: any[]) => api.post('students/bulk-promote/', data),
     createClass: (data: any) => api.post('classes/', data),
     updateClass: (id: string, data: any) => api.put(`classes/${id}/`, data),
     deleteClass: (id: string) => api.delete(`classes/${id}/`),

@@ -38,12 +38,14 @@ import {
   MoreVert as MoreVertIcon,
   Search as SearchIcon,
   FilterList as FilterListIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
 import { schoolService } from '@/services/api';
 import type { Student, PaymentStatus, Class } from '@/types';
 import { useNotification } from '@/contexts/NotificationContext';
+import { PromotionWizard } from './PromotionWizard';
 
 export const StudentsPage: React.FC = () => {
   const theme = useTheme();
@@ -65,6 +67,17 @@ export const StudentsPage: React.FC = () => {
   const [openExportDialog, setOpenExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf' | 'csv'>('excel');
   const [exportScope, setExportScope] = useState<'filtered' | 'all' | 'selected'>('filtered');
+  const [openPromotionWizard, setOpenPromotionWizard] = useState(false);
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState<Record<string, boolean>>({});
+
+  // Initialize column visibility based on isMobile
+  useEffect(() => {
+    setColumnVisibilityModel({
+      matricule: !isMobile,
+      gender: !isMobile,
+      parentName: !isMobile,
+    });
+  }, [isMobile]);
 
   // Form state
   const [studentForm, setStudentForm] = useState({
@@ -239,17 +252,24 @@ export const StudentsPage: React.FC = () => {
     }
   };
 
+  const getSelectedCount = () => {
+    if (selectedRows.type === 'exclude') {
+      return filteredStudents.length - selectedRows.ids.size;
+    }
+    return selectedRows.ids.size;
+  };
+
   const handleSendSMS = (student: Student) => {
     showNotification(`SMS envoyé à ${student.parentPhone}`, 'success');
   };
 
   const handleBulkSMS = () => {
-    showNotification(`SMS envoyé à ${selectedRows.ids.size} parents`, 'success');
+    showNotification(`SMS envoyé à ${getSelectedCount()} parents`, 'success');
     setSelectedRows({ type: 'include', ids: new Set() });
   };
 
   const handleExport = () => {
-    if (selectedRows.ids.size > 0) {
+    if (getSelectedCount() > 0) {
       setExportScope('selected');
     } else {
       setExportScope('filtered');
@@ -260,7 +280,11 @@ export const StudentsPage: React.FC = () => {
   const handleExportData = () => {
     let dataToExport: Student[] = [];
     if (exportScope === 'selected') {
-      dataToExport = studentsList.filter(s => selectedRows.ids.has(s.id));
+      dataToExport = filteredStudents.filter(s => 
+        selectedRows.type === 'exclude' 
+          ? !selectedRows.ids.has(s.id) 
+          : selectedRows.ids.has(s.id)
+      );
     } else if (exportScope === 'filtered') {
       dataToExport = filteredStudents;
     } else {
@@ -427,22 +451,22 @@ export const StudentsPage: React.FC = () => {
       field: 'totalPaid',
       headerName: 'Payé',
       width: 110,
-      valueFormatter: (value: any) => `${(value || 0).toLocaleString()} FCFA`,
+      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
     },
     {
       field: 'totalDue',
       headerName: 'Total Dû',
       width: 110,
-      valueFormatter: (value: any) => `${(value || 0).toLocaleString()} FCFA`,
+      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
     },
     {
       field: 'balance',
       headerName: 'Reste',
       width: 110,
-      valueGetter: (_value, row) => (row.totalDue || 0) - (row.totalPaid || 0),
-      valueFormatter: (value: any) => `${(value || 0).toLocaleString()} FCFA`,
+      valueGetter: (_value, row) => (Number(row.totalDue) || 0) - (Number(row.totalPaid) || 0),
+      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
       renderCell: (params: GridRenderCellParams<Student>) => {
-        const balance = (params.row.totalDue || 0) - (params.row.totalPaid || 0);
+        const balance = (Number(params.row.totalDue) || 0) - (Number(params.row.totalPaid) || 0);
         return (
           <Typography
             variant="body2"
@@ -514,6 +538,15 @@ export const StudentsPage: React.FC = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<TrendingUpIcon />}
+            onClick={() => setOpenPromotionWizard(true)}
+            color="secondary"
+          >
+            Promotion
+          </Button>
           <Button
             variant="outlined"
             size="small"
@@ -600,11 +633,11 @@ export const StudentsPage: React.FC = () => {
       </Card>
 
       {/* Bulk Actions */}
-      {selectedRows.ids.size > 0 && (
+      {getSelectedCount() > 0 && (
         <Card sx={{ mb: 2, borderRadius: 3, bgcolor: 'primary.container' }}>
           <CardContent sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="body2">
-              <strong>{selectedRows.ids.size}</strong> élève(s) sélectionné(s)
+              <strong>{getSelectedCount()}</strong> élève(s) sélectionné(s)
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
@@ -636,13 +669,17 @@ export const StudentsPage: React.FC = () => {
             autoHeight
             initialState={{
               pagination: {
-                paginationModel: { pageSize: 10 },
+                paginationModel: { page: 0, pageSize: 10 },
               },
             }}
-            columnVisibilityModel={{
-              matricule: !isMobile,
-              gender: !isMobile,
-              parentName: !isMobile,
+            columnVisibilityModel={columnVisibilityModel}
+            onColumnVisibilityModelChange={(newModel) => setColumnVisibilityModel(newModel)}
+            slots={{ toolbar: GridToolbar }}
+            slotProps={{
+              toolbar: {
+                showQuickFilter: true,
+                quickFilterProps: { debounceMs: 500 },
+              },
             }}
             pageSizeOptions={[5, 10, 25, 50]}
             checkboxSelection
@@ -983,12 +1020,12 @@ export const StudentsPage: React.FC = () => {
               value={exportScope}
               onChange={(e) => setExportScope(e.target.value as any)}
               sx={{ borderRadius: 2 }}
-              disabled={selectedRows.ids.size === 0 && exportScope === 'selected'}
+              disabled={getSelectedCount() === 0 && exportScope === 'selected'}
             >
               <MenuItem value="filtered">Vue filtrée ({filteredStudents.length} élèves)</MenuItem>
               <MenuItem value="all">Tous les inscrits ({studentsList.length} élèves)</MenuItem>
-              <MenuItem value="selected" disabled={selectedRows.ids.size === 0}>
-                Éléments sélectionnés ({selectedRows.ids.size} élèves)
+              <MenuItem value="selected" disabled={getSelectedCount() === 0}>
+                Éléments sélectionnés ({getSelectedCount()} élèves)
               </MenuItem>
             </Select>
           </FormControl>
@@ -1014,6 +1051,14 @@ export const StudentsPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Promotion Wizard */}
+      <PromotionWizard
+        open={openPromotionWizard}
+        onClose={() => setOpenPromotionWizard(false)}
+        onSuccess={refreshData}
+        classesList={classesList}
+      />
     </Box>
   );
 };

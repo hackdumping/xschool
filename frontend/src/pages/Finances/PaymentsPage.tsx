@@ -46,8 +46,9 @@ import {
   Print as PrintIcon,
   Delete as DeleteIcon,
   Warning as WarningIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers';
 import { financeService, schoolService } from '@/services/api';
@@ -89,7 +90,18 @@ export const PaymentsPage: React.FC = () => {
   const [openReceiptDialog, setOpenReceiptDialog] = useState(false);
   const [openExportDialog, setOpenExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf' | 'csv'>('excel');
-  const [exportScope, setExportScope] = useState<'filtered' | 'all'>('filtered');
+  const [exportScope, setExportScope] = useState<'filtered' | 'all' | 'selected'>('filtered');
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState<Record<string, boolean>>({});
+
+  // Initialize column visibility based on isMobile
+  useEffect(() => {
+    setColumnVisibilityModel({
+      receiptNumber: !isMobile,
+      className: !isMobile,
+      remainingBalance: true,
+      mode: !isMobile,
+    });
+  }, [isMobile]);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [menuPayment, setMenuPayment] = useState<PaymentWithStudent | null>(null);
   const [activeStep, setActiveStep] = useState(0);
@@ -98,6 +110,7 @@ export const PaymentsPage: React.FC = () => {
 
   // New payment form state
   const [newPayment, setNewPayment] = useState({
+    id: '' as string | undefined,
     studentId: '',
     trancheId: '',
     amount: '',
@@ -158,6 +171,7 @@ export const PaymentsPage: React.FC = () => {
     setOpenAddDialog(true);
     setActiveStep(0);
     setNewPayment({
+      id: undefined,
       studentId: '',
       trancheId: '',
       amount: '',
@@ -176,11 +190,26 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
+  const handleEditPayment = (payment: PaymentWithStudent) => {
+    setOpenAddDialog(true);
+    setActiveStep(0); // Optional: you can jump directly to step 2 if you want, but starting at 0 is safe
+    setNewPayment({
+      id: payment.id,
+      studentId: payment.studentId,
+      trancheId: payment.trancheId,
+      amount: String(payment.amountPaid),
+      mode: payment.mode,
+      date: new Date(payment.date),
+      receiptNumber: payment.receiptNumber,
+      notes: payment.notes || '',
+    });
+  };
+
   const handleSavePayment = async () => {
     try {
       const tranche = tranchesList.find(t => t.id === newPayment.trancheId);
       
-      await financeService.createPayment({
+      const paymentData = {
         studentId: newPayment.studentId,
         trancheId: newPayment.trancheId,
         amountPaid: Number(newPayment.amount),
@@ -189,8 +218,15 @@ export const PaymentsPage: React.FC = () => {
         date: newPayment.date.toISOString().split('T')[0],
         receiptNumber: newPayment.receiptNumber,
         notes: newPayment.notes,
-      });
-      showNotification('Paiement enregistré avec succès', 'success');
+      };
+
+      if (newPayment.id) {
+        await financeService.updatePayment(newPayment.id, paymentData);
+        showNotification('Paiement modifié avec succès', 'success');
+      } else {
+        await financeService.createPayment(paymentData);
+        showNotification('Paiement enregistré avec succès', 'success');
+      }
       setOpenAddDialog(false);
       // Refresh payments
       const paymentsRes = await financeService.getPayments();
@@ -222,6 +258,20 @@ export const PaymentsPage: React.FC = () => {
     }
   };
 
+  const getSelectedCount = () => {
+    if (selectedRows.type === 'exclude') {
+      return filteredPayments.length - selectedRows.ids.size;
+    }
+    return selectedRows.ids.size;
+  };
+
+  const getSelectedIds = (): string[] => {
+    if (selectedRows.type === 'exclude') {
+      return filteredPayments.filter(p => !selectedRows.ids.has(p.id)).map(p => p.id);
+    }
+    return Array.from(selectedRows.ids) as string[];
+  };
+
   const handleSendSMS = (payment: Payment) => {
     const student = studentsList.find(s => s.id === payment.studentId);
     if (student) {
@@ -230,7 +280,7 @@ export const PaymentsPage: React.FC = () => {
   };
 
   const handleBulkSMS = () => {
-    showNotification(`SMS envoyé à ${selectedRows.ids.size} parents`, 'success');
+    showNotification(`SMS envoyé à ${getSelectedCount()} parents`, 'success');
     setSelectedRows({ type: 'include', ids: new Set() });
   };
 
@@ -247,7 +297,13 @@ export const PaymentsPage: React.FC = () => {
   };
 
   const handleExportData = () => {
-    const dataToExport = exportScope === 'filtered' ? filteredPayments : paymentsList;
+    let dataToExport = paymentsList;
+    if (exportScope === 'selected') {
+      const selectedIds = getSelectedIds();
+      dataToExport = filteredPayments.filter(p => selectedIds.includes(p.id));
+    } else if (exportScope === 'filtered') {
+      dataToExport = filteredPayments;
+    }
 
     if (dataToExport.length === 0) {
       showNotification('Aucune donnée à exporter', 'warning');
@@ -385,7 +441,7 @@ export const PaymentsPage: React.FC = () => {
       width: 130,
       renderCell: (params: GridRenderCellParams<PaymentWithStudent>) => (
         <Typography variant="body2" fontWeight={500} color="success.main">
-          {params.value.toLocaleString()} XAF
+          {Number(params.value).toLocaleString()} XAF
         </Typography>
       ),
     },
@@ -394,8 +450,8 @@ export const PaymentsPage: React.FC = () => {
       headerName: 'Reste à payer',
       width: 130,
       renderCell: (params: GridRenderCellParams<PaymentWithStudent>) => (
-        <Typography variant="body2" color={params.value > 0 ? 'warning.main' : 'success.main'} fontWeight={600}>
-          {params.value.toLocaleString()} XAF
+        <Typography variant="body2" color={Number(params.value) > 0 ? 'warning.main' : 'success.main'} fontWeight={600}>
+          {Number(params.value).toLocaleString()} XAF
         </Typography>
       ),
     },
@@ -424,15 +480,10 @@ export const PaymentsPage: React.FC = () => {
       sortable: false,
       filterable: false,
       renderCell: (params: GridRenderCellParams<PaymentWithStudent>) => (
-        <Box>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
           <Tooltip title="Voir détails">
             <IconButton size="small" onClick={() => handleViewPayment(params.row)}>
               <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Supprimer">
-            <IconButton size="small" color="error" onClick={() => handleDeleteConfirm([params.row.id])}>
-              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <IconButton size="small" onClick={(e) => handleMenuOpen(e, params.row)}>
@@ -576,7 +627,7 @@ export const PaymentsPage: React.FC = () => {
       </Card>
 
       {/* Bulk Actions */}
-      {selectedRows.ids.size > 0 && (
+      {getSelectedCount() > 0 && (
         <Card 
           sx={{ 
             mb: 2, 
@@ -598,7 +649,7 @@ export const PaymentsPage: React.FC = () => {
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {selectedRows.ids.size} paiement(s) sélectionné(s)
+              {getSelectedCount()} paiement(s) sélectionné(s)
             </Typography>
             <Box 
               sx={{ 
@@ -632,7 +683,7 @@ export const PaymentsPage: React.FC = () => {
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
-                onClick={() => handleDeleteConfirm(Array.from(selectedRows.ids) as string[])}
+                onClick={() => handleDeleteConfirm(getSelectedIds())}
                 sx={{ 
                   flex: { xs: '1 1 100%', sm: 'none' },
                   mt: { xs: 0.5, sm: 0 } 
@@ -655,11 +706,14 @@ export const PaymentsPage: React.FC = () => {
               paginationModel: { pageSize: 10 },
             },
           }}
-          columnVisibilityModel={{
-            receiptNumber: !isMobile,
-            className: !isMobile,
-            remainingBalance: true, // Show this one also on mobile if possible, or keep it responsive elsewhere
-            mode: !isMobile,
+          columnVisibilityModel={columnVisibilityModel}
+          onColumnVisibilityModelChange={(newModel) => setColumnVisibilityModel(newModel)}
+          slots={{ toolbar: GridToolbar }}
+          slotProps={{
+            toolbar: {
+              showQuickFilter: true,
+              quickFilterProps: { debounceMs: 500 },
+            },
           }}
           pageSizeOptions={[5, 10, 25, 50]}
           checkboxSelection
@@ -787,7 +841,7 @@ export const PaymentsPage: React.FC = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Nouveau Paiement</DialogTitle>
+        <DialogTitle>{newPayment.id ? 'Modifier un Paiement' : 'Nouveau Paiement'}</DialogTitle>
         <DialogContent>
           <Stepper activeStep={activeStep} sx={{ mb: 4, mt: 2 }}>
             {steps.map((label) => (
@@ -1231,6 +1285,17 @@ export const PaymentsPage: React.FC = () => {
         <MenuItem
           onClick={() => {
             if (menuPayment) {
+              handleEditPayment(menuPayment);
+              handleMenuClose();
+            }
+          }}
+        >
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Modifier
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (menuPayment) {
               handlePrintReceipt(menuPayment);
               handleMenuClose();
             }
@@ -1392,9 +1457,13 @@ export const PaymentsPage: React.FC = () => {
               value={exportScope}
               onChange={(e) => setExportScope(e.target.value as any)}
               sx={{ borderRadius: 2 }}
+              disabled={getSelectedCount() === 0 && exportScope === 'selected'}
             >
               <MenuItem value="filtered">Vue actuelle (avec filtres : {filteredPayments.length} paiements)</MenuItem>
               <MenuItem value="all">Toute la base de données ({paymentsList.length} paiements)</MenuItem>
+              <MenuItem value="selected" disabled={getSelectedCount() === 0}>
+                Paiements sélectionnés ({getSelectedCount()})
+              </MenuItem>
             </Select>
           </FormControl>
 

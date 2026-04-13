@@ -59,11 +59,11 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, students, payments, on
   const occupancyRate = (studentCount / classData.maxSize) * 100;
 
   // Calculate financial recovery
-  const totalExpected = (classData.tranches?.reduce((sum, t) => sum + t.amount, 0) || 0) * studentCount;
+  const totalExpected = (classData.tranches?.reduce((sum, t) => sum + Number(t.amount), 0) || 0) * studentCount;
   const classStudentIds = classStudents.map(s => s.id);
   const totalPaid = payments
     .filter(p => classStudentIds.includes(p.studentId))
-    .reduce((sum, p) => sum + p.amountPaid, 0);
+    .reduce((sum, p) => sum + Number(p.amountPaid), 0);
   const recoveryRate = totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0;
 
   return (
@@ -389,6 +389,8 @@ export const ClassesPage: React.FC = () => {
           onChange={(_, val) => setCategoryTab(val)}
           textColor="primary"
           indicatorColor="primary"
+          variant="scrollable"
+          allowScrollButtonsMobile
         >
           <Tab label="Toutes les classes" value="all" />
           <Tab label="Enseignement Général" value="general" />

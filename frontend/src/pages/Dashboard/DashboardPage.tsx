@@ -15,7 +15,9 @@ import {
   IconButton,
   Tooltip,
   Fab,
+  Button,
   useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -29,6 +31,7 @@ import {
   Grade as GradeIcon,
   PersonAdd as PersonAddIcon,
   Receipt as ReceiptIcon,
+  Assessment as AssessmentIcon,
 } from '@mui/icons-material';
 import { 
   BarChart, 
@@ -220,8 +223,9 @@ import type { Student, Class } from '@/types';
 
 export const DashboardPage: React.FC = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
+  const { showNotification, fetchNotifications } = useNotification();
   const { settings } = useSchool();
   const [stats, setStats] = useState<any>(null);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -239,6 +243,9 @@ export const DashboardPage: React.FC = () => {
         setStats(statsRes.data);
         setClasses(classesRes.data);
         setStudents(studentsRes.data);
+        
+        // Refresh notifications to pick up synced alerts
+        fetchNotifications();
       } catch (error) {
         console.error('Failed to fetch stats', error);
         showNotification('Erreur lors du chargement des statistiques', 'error');
@@ -326,7 +333,23 @@ export const DashboardPage: React.FC = () => {
             Vue d'ensemble de l'établissement
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1, alignSelf: { xs: 'flex-end', sm: 'auto' } }}>
+        <Box sx={{ display: 'flex', gap: 1, alignSelf: { xs: 'flex-start', sm: 'auto' }, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
+          <Button
+            variant="contained"
+            color="info"
+            size="medium"
+            startIcon={<AssessmentIcon />}
+            onClick={() => navigate('/finances/summary')}
+            sx={{ 
+              borderRadius: 3, 
+              textTransform: 'none', 
+              fontWeight: 700,
+              boxShadow: 'none',
+              px: { xs: 2, sm: 3 },
+            }}
+          >
+            {isMobile ? 'Bilan' : 'Consulter Bilan'}
+          </Button>
           <Tooltip title="Nouveau paiement">
             <Fab
               size="small"
@@ -350,52 +373,130 @@ export const DashboardPage: React.FC = () => {
 
       {/* KPI Cards */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+        {/* 1. Total à Recouvrir (Amount + Progress Bar) */}
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <KPICard
-            title="Total Élèves"
-            value={kpi.totalStudents}
-            subtitle={`${kpi.totalClasses} classes`}
-            icon={<PeopleIcon />}
-            color="#4CAF50"
-            trend={{ value: 5.2, isPositive: true }}
-            trendTextColor="common.black"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <KPICard
-            title="Taux de Recouvrement"
-            value={`${kpi.globalRecoveryRate || 0}%`}
-            subtitle="Global"
-            icon={<TrendingUpIcon />}
+            title="Total à Recouvrir"
+            value={`${(kpi.totalExpected || 0).toLocaleString()} ${settings.currency_symbol}`}
+            subtitle="Montant total attendu"
+            icon={<AccountBalanceIcon />}
             color="#2196F3"
             progress={kpi.globalRecoveryRate || 0}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+
+        {/* 2. Total Recouvré */}
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <KPICard
-            title="Solde Général"
-            value={`${(kpi.generalBalance || 0).toLocaleString()} ${settings.currency_symbol}`}
-            subtitle={`Revenus: ${(kpi.totalIncome || 0).toLocaleString()}`}
-            icon={<AccountBalanceIcon />}
-            color="#FF9800"
+            title="Total Recouvré"
+            value={`${(kpi.totalIncome || 0).toLocaleString()} ${settings.currency_symbol}`}
+            subtitle="Paiements effectués"
+            icon={<TrendingUpIcon />}
+            color="#4CAF50"
             trend={{ value: 12.5, isPositive: true }}
             trendTextColor="common.black"
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+
+        {/* 3. Reste à Recouvrir */}
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <KPICard
+            title="Reste à Recouvrir"
+            value={`${(kpi.totalRemaining || 0).toLocaleString()} ${settings.currency_symbol}`}
+            subtitle="Solde en attente"
+            icon={<TrendingDownIcon />}
+            color="#FF9800"
+          />
+        </Grid>
+
+        {/* 4. Dépenses Totales */}
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <KPICard
+            title="Dépenses Totales"
+            value={`${(kpi.totalExpenses || 0).toLocaleString()} ${settings.currency_symbol}`}
+            subtitle="Dépenses effectuées"
+            icon={<ReceiptIcon />}
+            color="#F44336"
+          />
+        </Grid>
+
+        {/* 5. Total Élève */}
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <KPICard
+            title="Total Élèves"
+            value={kpi.totalStudents}
+            subtitle={`${kpi.totalClasses} classes actives`}
+            icon={<PeopleIcon />}
+            color="#00BCD4"
+            trend={{ value: 5.2, isPositive: true }}
+            trendTextColor="common.black"
+          />
+        </Grid>
+
+        {/* 6. Alerte Active */}
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <KPICard
             title="Alertes Actives"
             value={kpi.activeAlerts}
             subtitle={`${kpi.pendingPayments} paiements en attente`}
             icon={<WarningIcon />}
-            color="#F44336"
+            color="#9C27B0"
           />
         </Grid>
       </Grid>
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        {/* Recent Operations */}
+        {/* 7. Alerts */}
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Card sx={{ borderRadius: 3, height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                Alertes
+              </Typography>
+
+              <List sx={{ p: 0 }}>
+                {alerts.slice(0, 5).map((alert: any) => (
+                  <ListItem
+                    key={alert.id}
+                    sx={{
+                      px: 2,
+                      py: 1.5,
+                      borderRadius: 2,
+                      mb: 1,
+                      backgroundColor: 'action.hover',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, width: '100%' }}>
+                      <Chip
+                        size="small"
+                        label={alert.severity.toUpperCase()}
+                        color={getAlertColor(alert.severity) as 'error' | 'warning' | 'info' | 'default'}
+                        sx={{ fontSize: '0.625rem', height: 20 }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(alert.date).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {alert.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {alert.description}
+                    </Typography>
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* 8. Recent Operations */}
         <Grid size={{ xs: 12, lg: 8 }}>
           <Card sx={{ borderRadius: 3, height: '100%' }}>
             <CardContent sx={{ p: 3 }}>
@@ -445,55 +546,6 @@ export const DashboardPage: React.FC = () => {
                         {op.type === 'payment' ? '+' : '-'}{op.amount.toLocaleString()} {settings.currency_symbol}
                       </Typography>
                     )}
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Alerts */}
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Card sx={{ borderRadius: 3, height: '100%' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                Alertes
-              </Typography>
-
-              <List sx={{ p: 0 }}>
-                {alerts.slice(0, 5).map((alert: any) => (
-                  <ListItem
-                    key={alert.id}
-                    sx={{
-                      px: 2,
-                      py: 1.5,
-                      borderRadius: 2,
-                      mb: 1,
-                      backgroundColor: 'action.hover',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, width: '100%' }}>
-                      <Chip
-                        size="small"
-                        label={alert.severity.toUpperCase()}
-                        color={getAlertColor(alert.severity) as 'error' | 'warning' | 'info' | 'default'}
-                        sx={{ fontSize: '0.625rem', height: 20 }}
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(alert.date).toLocaleDateString('fr-FR', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {alert.title}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {alert.description}
-                    </Typography>
                   </ListItem>
                 ))}
               </List>

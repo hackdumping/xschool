@@ -19,6 +19,32 @@ class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @action(detail=False, methods=['post'], url_path='bulk-promote')
+    def bulk_promote(self, request):
+        promotions = request.data
+        if not isinstance(promotions, list):
+            return Response({'error': 'Expected a list of promotions'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        results = []
+        for item in promotions:
+            student_id = item.get('studentId')
+            class_id = item.get('classId')
+            is_repeating = item.get('isRepeating', False)
+            status_val = item.get('status', 'active')
+            
+            if student_id and class_id:
+                try:
+                    student = Student.objects.get(id=student_id)
+                    student.school_class_id = class_id
+                    student.is_repeating = is_repeating
+                    student.status = status_val
+                    student.save()
+                    results.append(StudentSerializer(student).data)
+                except Student.DoesNotExist:
+                    continue
+        
+        return Response(results, status=status.HTTP_200_OK)
+
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
