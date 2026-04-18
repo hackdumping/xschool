@@ -2,7 +2,7 @@
 
 XSchool est une plateforme complète et moderne de gestion pour les établissements scolaires, conçue pour simplifier le suivi administratif et financier.
 
-## 🚀 Fonctionnalités Clés
+## 🚀 Fonctionnalités Clés.
 
 - **Tableau de Bord Dynamique** : Visualisation en temps réel des statistiques (taux de recouvrement, effectifs, opérations récentes).
 - **Gestion des Élèves** : Inscription, suivi des dossiers et affichage standardisé (**NOM Prénom**).
