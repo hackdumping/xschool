@@ -45,7 +45,7 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
-import type { GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
+import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import html2canvas from 'html2canvas';
 import { schoolService } from '@/services/api';
 import type { Student, PaymentStatus, Class } from '@/types';
@@ -346,7 +346,7 @@ export const StudentsPage: React.FC = () => {
   const handleDeleteStudent = async (student: Student) => {
     if (confirm(`Voulez-vous supprimer l'élève ${student.lastName} ${student.firstName} ?`)) {
       try {
-        await schoolService.deleteStudent(Number(student.id));
+        await schoolService.deleteStudent(Number(Number(student.id)));
         showNotification('Élève supprimé', 'success');
         refreshData();
       } catch (error) {
@@ -365,7 +365,7 @@ export const StudentsPage: React.FC = () => {
 
     try {
       if (selectedStudent) {
-        await schoolService.updateStudent(selectedStudent.id, studentForm);
+        await schoolService.updateStudent(Number(selectedStudent.id), studentForm);
         showNotification('Élève modifié avec succès', 'success');
       } else {
         await schoolService.createStudent(studentForm);
@@ -1530,7 +1530,7 @@ export const StudentsPage: React.FC = () => {
           }}>
             {certificateStudents.map((student, idx) => (
               <Box 
-                key={student.id} 
+                key={Number(student.id)} 
                 sx={{ 
                   width: '21cm', 
                   mx: 'auto',

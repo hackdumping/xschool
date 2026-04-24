@@ -24,7 +24,6 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '@/services/api';
-import { useSchool } from '@/contexts/SchoolContext';
 import { AuthLayout } from './components/AuthLayout';
 import { Card, CardActionArea, Grid, useTheme, alpha } from '@mui/material';
 
@@ -277,7 +276,7 @@ const SignUpPage: React.FC = () => {
                         
                         <Grid container spacing={2} sx={{ mb: 4 }}>
                             {establishmentTypes.map((type) => (
-                                <Grid size={{ xs: 12, sm: 6 }} key={type.id}>
+                                <Grid size={true} key={type.id}>
                                     <Card 
                                         sx={{ 
                                             borderRadius: 3,

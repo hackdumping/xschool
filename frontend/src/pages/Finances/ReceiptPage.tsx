@@ -261,7 +261,7 @@ export const ReceiptPage: React.FC = () => {
                                             <SchoolIcon sx={{ color: 'primary.main', fontSize: 45 }} /> // STATIC SIZE
                                         )}
                                     </Grid>
-                                    <Grid size={{ xs: true }} sx={{ flex: 1 }}>
+                                    <Grid size={true} sx={{ flex: 1 }}>
                                         <Typography variant="h6" fontWeight={900} color="primary.main" sx={{ fontSize: '1.25rem', lineHeight: 1.1, textTransform: 'uppercase' }}>
                                             {(settings.establishment_name || settings.name || 'XSCHOOL')}
                                         </Typography>
@@ -272,7 +272,7 @@ export const ReceiptPage: React.FC = () => {
                                             {settings.address || 'Yaoundé'} | Tel: {settings.phone || '+237 ...'}
                                         </Typography>
                                     </Grid>
-                                    <Grid size={{ xs: true }} sx={{ textAlign: 'right' }}>
+                                    <Grid size={true} sx={{ textAlign: 'right' }}>
                                         <Typography variant="h5" fontWeight={900} sx={{ mt: -0.5, fontSize: '2rem', color: '#000' }}>REÇU</Typography>
                                         <Typography variant="subtitle2" sx={{ color: 'primary.main', fontWeight: 900, fontSize: '1rem' }}>N° {payment.receiptNumber}</Typography>
                                         <Typography variant="caption" fontWeight={700}>Émis le: {new Date().toLocaleDateString('fr-FR')}</Typography>
@@ -362,7 +362,7 @@ export const ReceiptPage: React.FC = () => {
                                         </Typography>
                                         <Box sx={{ borderTop: '1px dashed #bbb', width: 140 }} />
                                     </Grid>
-                                    <Grid size={{ xs: 'auto' }} sx={{ textAlign: 'right' }}>
+                                    <Grid size={true} sx={{ textAlign: 'right' }}>
                                         <Typography variant="caption" fontWeight={900} sx={{ mb: 6, display: 'block', fontSize: '0.65rem', textAlign: 'right' }}>
                                             LA COMPTABILITÉ
                                         </Typography>
