@@ -1,39 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { schoolService } from '@/services/api';
-
-interface SchoolSettings {
-    name: string;
-    establishment_name?: string;
-    email: string;
-    phone: string;
-    address: string;
-    website: string;
-    slogan: string;
-    logo: string | null;
-    enable_email_alerts: boolean;
-    enable_sms_alerts: boolean;
-    payment_reminder_days: number;
-    low_grade_threshold: number;
-    currency_symbol: string;
-    currency_code: string;
-    tranche_1_deadline: string;
-    tranche_2_deadline: string;
-    tranche_3_deadline: string;
-    exam_fee_amount: number;
-    enable_cash_payment: boolean;
-    enable_mobile_payment: boolean;
-    enable_bank_transfer: boolean;
-    bank_details: string;
-    receipt_footer: string;
-    session_timeout: number;
-    min_password_length: number;
-    max_login_attempts: number;
-    require_strong_password: boolean;
-    maintenance_mode: boolean;
-    two_factor_enforcement: boolean;
-    selected_types: string[];
-    owner_id?: number | null;
-}
+import type { SchoolSettings } from '@/types';
 
 interface SchoolContextType {
     settings: SchoolSettings;

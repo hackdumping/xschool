@@ -27,7 +27,6 @@ import {
   Tabs,
   Tab,
   useTheme,
-  useMediaQuery,
   alpha,
 } from '@mui/material';
 import {
@@ -46,6 +45,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { getCurrentAcademicYear } from '@/utils/academicYear';
+import type { Class, Student, Payment } from '@/types';
 
 const CATEGORY_LABELS: Record<string, string> = {
   garderie: 'Garderie',
@@ -80,7 +80,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, students, payments, on
   const occupancyRate = (studentCount / classData.maxSize) * 100;
 
   // Calculate financial recovery
-  const totalExpected = (classData.tranches?.reduce((sum, t) => sum + Number(t.amount), 0) || 0) * studentCount;
+  const totalExpected = (classData.tranches?.reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0) * studentCount;
   const classStudentIds = classStudents.map(s => s.id);
   const totalPaid = payments
     .filter(p => classStudentIds.includes(p.studentId))
@@ -197,7 +197,6 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, students, payments, on
 };
 
 export const ClassesPage: React.FC = () => {
-  const { user } = useAuth();
   const { settings } = useSchool();
   const { showNotification } = useNotification();
   const theme = useTheme();

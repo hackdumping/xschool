@@ -35,7 +35,6 @@ const SignUpPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const { settings } = useSchool();
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
@@ -278,7 +277,7 @@ const SignUpPage: React.FC = () => {
                         
                         <Grid container spacing={2} sx={{ mb: 4 }}>
                             {establishmentTypes.map((type) => (
-                                <Grid item xs={12} sm={6} key={type.id}>
+                                <Grid size={{ xs: 12, sm: 6 }} key={type.id}>
                                     <Card 
                                         sx={{ 
                                             borderRadius: 3,

@@ -105,7 +105,7 @@ export const PersonnelPage: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: number, username: string) => {
-    if (userId === currentUser?.id) {
+    if (String(userId) === String(currentUser?.id)) {
       showNotification("Vous ne pouvez pas supprimer votre propre compte.", "warning");
       return;
     }
@@ -137,7 +137,7 @@ export const PersonnelPage: React.FC = () => {
             Gestion de l'Équipe
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Gérez les collaborateurs de <strong>{currentUser?.establishment_info?.name}</strong>
+            Gérez les collaborateurs de <strong>{(currentUser as any)?.establishment_info?.name}</strong>
           </Typography>
         </Box>
         <Button

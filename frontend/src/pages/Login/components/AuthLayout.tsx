@@ -8,7 +8,6 @@ import {
     Typography,
     Avatar,
 } from '@mui/material';
-import { School as SchoolIcon } from '@mui/icons-material';
 import { useSchool } from '@/contexts/SchoolContext';
 
 interface AuthLayoutProps {
@@ -18,7 +17,7 @@ interface AuthLayoutProps {
     icon?: React.ReactNode;
 }
 
-export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle, icon }) => {
+export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) => {
     const theme = useTheme();
     const { settings } = useSchool();
 

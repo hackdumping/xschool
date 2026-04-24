@@ -32,7 +32,6 @@ import {
   PersonAdd as PersonAddIcon,
   Receipt as ReceiptIcon,
   Assessment as AssessmentIcon,
-  School as SchoolIcon,
 } from '@mui/icons-material';
 import { 
   BarChart, 

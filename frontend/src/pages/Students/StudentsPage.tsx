@@ -346,7 +346,7 @@ export const StudentsPage: React.FC = () => {
   const handleDeleteStudent = async (student: Student) => {
     if (confirm(`Voulez-vous supprimer l'élève ${student.lastName} ${student.firstName} ?`)) {
       try {
-        await schoolService.deleteStudent(student.id);
+        await schoolService.deleteStudent(Number(student.id));
         showNotification('Élève supprimé', 'success');
         refreshData();
       } catch (error) {
@@ -1568,13 +1568,13 @@ export const StudentsPage: React.FC = () => {
                           {schoolSettings.slogan}
                         </Typography>
                       )}
-                      {schoolSettings.article_text && (
+                      {(schoolSettings as any).article_text && (
                         <Typography variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: 'black', maxWidth: '180px', mx: 'auto', lineHeight: 1.1, mb: 1 }}>
-                          {schoolSettings.article_text}
+                          {(schoolSettings as any).article_text}
                         </Typography>
                       )}
                       <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Tél : {schoolSettings.phone}</Typography>
-                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>B.P. {schoolSettings.postal_code} {schoolSettings.city}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>B.P. {(schoolSettings as any).postal_code} {(schoolSettings as any).city}</Typography>
                       <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Email : {schoolSettings.email}</Typography>
                     </Box>
                     
@@ -1590,20 +1590,20 @@ export const StudentsPage: React.FC = () => {
                       <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'black' }}>REPUBLIC OF CAMEROON</Typography>
                       <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Peace - Work - Fatherland</Typography>
                       <Typography variant="caption" sx={{ display: 'block', mt: 1, fontWeight: 800, color: 'black' }}>
-                        {(schoolSettings.english_name || schoolSettings.establishment_name || schoolSettings.name || '').toUpperCase()}
+                        {((schoolSettings as any).english_name || schoolSettings.establishment_name || schoolSettings.name || '').toUpperCase()}
                       </Typography>
                       {schoolSettings.slogan && (
                         <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', fontStyle: 'italic', mb: 1, color: 'black' }}>
                           {schoolSettings.slogan}
                         </Typography>
                       )}
-                      {schoolSettings.article_text && (
+                      {(schoolSettings as any).article_text && (
                         <Typography variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: 'black', maxWidth: '180px', mx: 'auto', lineHeight: 1.1, mb: 1 }}>
-                          {schoolSettings.article_text}
+                          {(schoolSettings as any).article_text}
                         </Typography>
                       )}
                       <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Phone : {schoolSettings.phone}</Typography>
-                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>PO.BOX {schoolSettings.postal_code} {schoolSettings.city}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>PO.BOX {(schoolSettings as any).postal_code} {(schoolSettings as any).city}</Typography>
                       <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Email : {schoolSettings.email}</Typography>
                     </Box>
                   </Box>
@@ -1611,7 +1611,7 @@ export const StudentsPage: React.FC = () => {
                   {/* Main Title */}
                   <Box sx={{ textAlign: 'center', mb: 6 }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'black', display: 'block' }}>
-                      Réf. : {schoolSettings.certificate_reference?.replace('{ANNEE}', new Date().getFullYear().toString()) || ''}{student.matricule}/{idx + 1}
+                      Réf. : {(schoolSettings as any).certificate_reference?.replace('{ANNEE}', new Date().getFullYear().toString()) || ''}{student.matricule}/{idx + 1}
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 900, textDecoration: 'underline', mt: 2, color: 'black' }}>
                       CERTIFICAT DE SCOLARITÉ / SCHOOL ATTESTATION
@@ -1638,7 +1638,7 @@ export const StudentsPage: React.FC = () => {
                       <Typography>{student.placeOfBirth || '-'}</Typography>
 
                       <Typography sx={{ fontWeight: 700 }}>Classe / Level :</Typography>
-                      <Typography sx={{ fontWeight: 800 }}>{student.className}</Typography>
+                      <Typography sx={{ fontWeight: 800 }}>{(student as any).className}</Typography>
 
                       <Typography sx={{ fontWeight: 700 }}>Parent / Tuteur :</Typography>
                       <Typography>{student.parentName}</Typography>
@@ -1662,11 +1662,11 @@ export const StudentsPage: React.FC = () => {
                     {/* Signatures */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 8 }}>
                       <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" sx={{ color: 'black' }}>Fait à {schoolSettings.city} le :</Typography>
+                        <Typography variant="body2" sx={{ color: 'black' }}>Fait à {(schoolSettings as any).city} le :</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, mt: 1, color: 'black' }}>{new Date().toLocaleDateString()}</Typography>
                       </Box>
                       <Box sx={{ textAlign: 'center', minWidth: '250px' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'black' }}>{schoolSettings.director_title}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'black' }}>{(schoolSettings as any).director_title}</Typography>
                         <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>The Principal / Director</Typography>
                         <Box sx={{ mt: 8, borderTop: '1px dashed #ccc', pt: 1 }}>
                           <Typography variant="caption" color="text.secondary">Cachet et Signature / Stamp and Signature</Typography>

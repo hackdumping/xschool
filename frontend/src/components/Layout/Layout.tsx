@@ -58,7 +58,6 @@ import {
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
   Delete as DeleteIcon,
-  PersonAdd as PersonAddIcon,
   SwapHoriz as SwapHorizIcon,
   Business as BusinessIcon,
   MonitorHeart as MonitorIcon,
@@ -69,7 +68,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import { useNotification } from '@/contexts/NotificationContext';
-import { authService, schoolService } from '@/services/api';
+import { authService } from '@/services/api';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -130,7 +129,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
   const [searchQuery, setSearchQuery] = useState('');
   const [establishments, setEstablishments] = useState<any[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string>(localStorage.getItem('selectedTenantId') || '');
-  const [loadingEstabs, setLoadingEstabs] = useState(false);
+  const [, setLoadingEstabs] = useState(false);
   const [tenantAnchor, setTenantAnchor] = useState<null | HTMLElement>(null);
 
   const {
@@ -199,7 +198,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
     }
   };
 
-  const isSuperAdmin = user?.is_superuser || user?.username === 'admin';
+  const isSuperAdmin = (user as any)?.is_superuser || user?.username === 'admin';
 
   React.useEffect(() => {
     if (isSuperAdmin) {

@@ -244,7 +244,7 @@ export const ReceiptPage: React.FC = () => {
                             {/* Header */}
                             <Box sx={{ borderBottom: '2px solid #333', pb: 2, mb: 2, position: 'relative', zIndex: 1 }}>
                                 <Grid container spacing={1} alignItems="center" wrap="nowrap">
-                                    <Grid item sx={{ mr: 2 }}>
+                                    <Grid size={{ xs: 'auto' }} sx={{ mr: 2 }}>
                                         {settings.logo ? (
                                             <Box 
                                                 component="img" 
@@ -261,7 +261,7 @@ export const ReceiptPage: React.FC = () => {
                                             <SchoolIcon sx={{ color: 'primary.main', fontSize: 45 }} /> // STATIC SIZE
                                         )}
                                     </Grid>
-                                    <Grid item sx={{ flex: 1 }}>
+                                    <Grid size={{ xs: true }} sx={{ flex: 1 }}>
                                         <Typography variant="h6" fontWeight={900} color="primary.main" sx={{ fontSize: '1.25rem', lineHeight: 1.1, textTransform: 'uppercase' }}>
                                             {(settings.establishment_name || settings.name || 'XSCHOOL')}
                                         </Typography>
@@ -272,7 +272,7 @@ export const ReceiptPage: React.FC = () => {
                                             {settings.address || 'Yaoundé'} | Tel: {settings.phone || '+237 ...'}
                                         </Typography>
                                     </Grid>
-                                    <Grid item sx={{ textAlign: 'right' }}>
+                                    <Grid size={{ xs: true }} sx={{ textAlign: 'right' }}>
                                         <Typography variant="h5" fontWeight={900} sx={{ mt: -0.5, fontSize: '2rem', color: '#000' }}>REÇU</Typography>
                                         <Typography variant="subtitle2" sx={{ color: 'primary.main', fontWeight: 900, fontSize: '1rem' }}>N° {payment.receiptNumber}</Typography>
                                         <Typography variant="caption" fontWeight={700}>Émis le: {new Date().toLocaleDateString('fr-FR')}</Typography>
@@ -283,7 +283,7 @@ export const ReceiptPage: React.FC = () => {
                             {/* Student/Payment info section */}
                             <Box sx={{ mb: 2.5, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.04), borderRadius: 2, border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.1), position: 'relative', zIndex: 1 }}>
                                 <Grid container spacing={2}>
-                                    <Grid item xs={12}>
+                                    <Grid size={{ xs: 12 }}>
                                         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 800, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>ÉLÈVE / STUDENT</Typography>
                                         <Typography variant="subtitle1" fontWeight={900} sx={{ lineHeight: 1.2 }}>{payment.studentName}</Typography>
                                         <Typography variant="caption" fontWeight={800} sx={{ color: 'black', display: 'block', mt: 0.2 }}>CLASSE: {payment.className?.toUpperCase()}</Typography>
@@ -355,14 +355,14 @@ export const ReceiptPage: React.FC = () => {
 
                             {/* Signatures */}
                             <Box sx={{ mt: 'auto', mb: 3 }}>
-                                <Grid container justifyContent="space-between">
-                                    <Grid item>
+                                <Grid container justifyContent="space-between" spacing={2}>
+                                    <Grid size={{ xs: 'auto' }}>
                                         <Typography variant="caption" fontWeight={900} sx={{ mb: 6, display: 'block', fontSize: '0.65rem', textAlign: 'left' }}>
                                             LE PARENT / TUTEUR
                                         </Typography>
                                         <Box sx={{ borderTop: '1px dashed #bbb', width: 140 }} />
                                     </Grid>
-                                    <Grid item sx={{ textAlign: 'right' }}>
+                                    <Grid size={{ xs: 'auto' }} sx={{ textAlign: 'right' }}>
                                         <Typography variant="caption" fontWeight={900} sx={{ mb: 6, display: 'block', fontSize: '0.65rem', textAlign: 'right' }}>
                                             LA COMPTABILITÉ
                                         </Typography>

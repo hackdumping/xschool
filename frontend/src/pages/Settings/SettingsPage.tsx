@@ -108,10 +108,10 @@ export const SettingsPage: React.FC = () => {
   const isOwner = React.useMemo(() => {
     if (!user) return false;
     // SuperAdmins get full access everywhere for maintenance
-    if (user.is_superuser || user.username === 'admin') return true;
+    if ((user as any).is_superuser || user.username === 'admin') return true;
     
-    if (!user.establishment_info) return false;
-    return String(user.id) === String(user.establishment_info.owner);
+    if (!(user as any).establishment_info) return false;
+    return String(user.id) === String((user as any).establishment_info.owner);
   }, [user]);
 
   const [deleting, setDeleting] = useState(false);
@@ -153,13 +153,13 @@ export const SettingsPage: React.FC = () => {
     tranche_3_deadline: settings.tranche_3_deadline || '',
     exam_fee_amount: settings.exam_fee_amount || 0,
     slogan: settings.slogan || '',
-    english_name: settings.english_name || '',
-    city: settings.city || '',
-    country: settings.country || '',
-    director_title: settings.director_title || '',
-    postal_code: settings.postal_code || '',
-    certificate_reference: settings.certificate_reference || '',
-    article_text: settings.article_text || '',
+    english_name: (settings as any).english_name || '',
+    city: (settings as any).city || '',
+    country: (settings as any).country || '',
+    director_title: (settings as any).director_title || '',
+    postal_code: (settings as any).postal_code || '',
+    certificate_reference: (settings as any).certificate_reference || '',
+    article_text: (settings as any).article_text || '',
   });
 
   const [staffData, setStaffData] = useState({
@@ -202,13 +202,13 @@ export const SettingsPage: React.FC = () => {
       tranche_3_deadline: settings.tranche_3_deadline || '',
       exam_fee_amount: settings.exam_fee_amount || 0,
       slogan: settings.slogan || '',
-      english_name: settings.english_name || '',
-      city: settings.city || '',
-      country: settings.country || '',
-      director_title: settings.director_title || '',
-      postal_code: settings.postal_code || '',
-      certificate_reference: settings.certificate_reference || '',
-      article_text: settings.article_text || '',
+      english_name: (settings as any).english_name || '',
+      city: (settings as any).city || '',
+      country: (settings as any).country || '',
+      director_title: (settings as any).director_title || '',
+      postal_code: (settings as any).postal_code || '',
+      certificate_reference: (settings as any).certificate_reference || '',
+      article_text: (settings as any).article_text || '',
     });
   }, [settings]);
 
@@ -372,7 +372,7 @@ export const SettingsPage: React.FC = () => {
       showNotification('L\'établissement et toutes ses données ont été supprimés avec succès.', 'success');
       
       // If a SuperAdmin deleted someone else's school, they shouldn't logout
-      if (user.is_superuser && String(targetUserId) !== String(user.id)) {
+      if ((user as any).is_superuser && String(targetUserId) !== String(user.id)) {
         localStorage.removeItem('selectedTenantId');
         navigate('/superadmin/dashboard');
         window.location.reload(); // Refresh to clear tenant context
@@ -479,7 +479,7 @@ export const SettingsPage: React.FC = () => {
           <Tab icon={<PaymentIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Finance" iconPosition="start" title="Finance" sx={tabStyle} />
           <Tab icon={<SchoolIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Tarifs" iconPosition="start" title="Tarifs & Échéances" sx={tabStyle} />
           <Tab icon={<SecurityIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Sécurité" iconPosition="start" title="Sécurité" sx={tabStyle} />
-          {isOwner && <Tab icon={<WarningIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Dangers" iconPosition="start" title="Zone de danger" sx={tabStyle} sx={{ ...tabStyle, '&.Mui-selected': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) } }} />}
+          {isOwner && <Tab icon={<WarningIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Dangers" iconPosition="start" title="Zone de danger" sx={{ ...tabStyle, '&.Mui-selected': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) } }} />}
         </Tabs>
       </Paper>
 
@@ -505,7 +505,7 @@ export const SettingsPage: React.FC = () => {
                       />
                   </Grid>
 
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                       fullWidth
                       label="Nom de l'établissement (Anglais)"
@@ -513,7 +513,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, english_name: e.target.value })}
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                       fullWidth
                       label="Slogan / Devise"
@@ -521,7 +521,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, slogan: e.target.value })}
                     />
                   </Grid>
-                  <Grid item xs={12} md={4}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
                       label="Ville"
@@ -529,7 +529,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     />
                   </Grid>
-                  <Grid item xs={12} md={4}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
                       label="Pays"
@@ -537,7 +537,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                     />
                   </Grid>
-                  <Grid item xs={12} md={4}>
+                  <Grid size={{ xs: 12, md: 4 }}>
                     <TextField
                       fullWidth
                       label="Boîte Postale (B.P.)"
@@ -545,7 +545,7 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                       fullWidth
                       label="Titre du Signataire (ex: Le Proviseur)"
@@ -554,7 +554,7 @@ export const SettingsPage: React.FC = () => {
                       helperText="Apparaîtra sur les certificats et relevés"
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                       fullWidth
                       label="Référence Certificat (Format)"
@@ -564,7 +564,7 @@ export const SettingsPage: React.FC = () => {
                     />
                   </Grid>
 
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <TextField
                       fullWidth
                       multiline

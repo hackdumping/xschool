@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -31,16 +31,6 @@ import {
   Sync as SyncIcon,
   Computer as PcIcon,
   Search as SearchIcon,
-  ShowChart as GrowthIcon,
-  TrendingUp as TrendingUpIcon,
-  Memory as RamIcon,
-  Storage as DbIcon,
-  NotificationsActive as AlertIcon,
-  ArrowForwardIos as ArrowRightIcon,
-  MoreVert as MoreVertIcon,
-  CheckCircle as SuccessCircleIcon,
-  ErrorOutline as ErrorIcon,
-  OpenInNew as LaunchIcon,
   Person as PersonIcon,
   AccountBalanceWallet as WalletIcon,
   Lock as LockIcon,
@@ -263,7 +253,7 @@ const SuperDashboard: React.FC = () => {
                         stroke="none"
                         cornerRadius={8}
                       >
-                        {marketShare.map((entry: any, index: number) => (
+                        {marketShare.map((_entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                         ))}
                       </Pie>
