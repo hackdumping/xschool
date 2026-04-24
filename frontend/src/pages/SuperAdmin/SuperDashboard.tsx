@@ -58,8 +58,6 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import api from '../../services/api';
 
 const PremiumCard = ({ children, sx = {}, ...props }: any) => {
