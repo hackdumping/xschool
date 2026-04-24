@@ -161,7 +161,7 @@ const SuperDashboard: React.FC = () => {
   const kpiCards = [
     { title: 'Revenus Totaux', value: `${kpis.totalRevenue?.toLocaleString()}`, symbol: 'FCFA', color: theme.palette.primary.main, icon: <MoneyIcon />, sub: `+${kpis.growthRevenue}% (30 jours)` },
     { title: 'Caisse Journalière', value: `${(kpis.dailyPayments || 0).toLocaleString()}`, symbol: 'FCFA', color: theme.palette.secondary.main, icon: <WalletIcon />, sub: 'Transferts live (Aujourd\'hui)' },
-    { title: 'Établissements', value: kpis.totalSchools, symbol: '', color: theme.palette.info.main, icon: <SchoolIcon />, sub: `${kpis.newSchools30d} nouveau(x)` },
+    { title: 'Établissements', value: kpis.totalSchools || 0, symbol: '', color: theme.palette.info.main, icon: <SchoolIcon />, sub: `${kpis.newSchools30d || 0} nouveau(x)` },
     { title: 'Professeurs', value: kpis.totalTeachers || 0, symbol: '', color: theme.palette.primary.light, icon: <WorkIcon />, sub: 'Staff Académique' },
     { title: 'Élèves Globaux', value: kpis.totalStudents, symbol: '', color: theme.palette.warning.main, icon: <StudentsIcon />, sub: `ARPU: ${kpis.arpu} F` },
     { title: 'Comptes Actifs', value: kpis.totalUsers, symbol: '', color: theme.palette.success.main, icon: <PeopleIcon />, sub: 'Utilisateurs SaaS' },
@@ -298,23 +298,37 @@ const SuperDashboard: React.FC = () => {
                       bgcolor: activity.type === 'payment' ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.info.main, 0.1),
                       color: activity.type === 'payment' ? theme.palette.success.main : theme.palette.info.main,
                       width: 48, height: 48, mr: 3, zIndex: 1,
-                      border: `4px solid ${isDark ? theme.palette.background.paper : '#ffffff'}`
                     }}>
                       {activity.type === 'payment' ? <MoneyIcon /> : <PersonIcon />}
                     </Avatar>
-                    <Box className="feed-card" sx={{ flexGrow: 1, p: 2, borderRadius: 3, transition: 'background-color 0.2s', mt: -1 }}>
-                      <Typography variant="subtitle1" fontWeight={800} color="text.primary">
-                        {activity.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1, leading: 1.4 }}>
-                        {activity.description}
-                      </Typography>
-                      <Typography variant="caption" color="text.disabled" fontWeight={700} sx={{ display: 'block' }}>
-                        {format(parseISO(activity.date), "dd MMM yyyy, HH:mm", { locale: fr })}
-                      </Typography>
+                    <Box sx={{ flexGrow: 1, p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.text.primary, 0.01), border: `1px solid ${alpha(theme.palette.divider, 0.2)}`, className: 'feed-card', transition: '0.2s' }}>
+                       <Typography variant="subtitle2" fontWeight={800} color="text.primary" sx={{ mb: 0.5 }}>{activity.title}</Typography>
+                       <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ mb: 1.5 }}>{activity.description}</Typography>
+                       <Typography variant="caption" color="text.disabled" fontWeight={700}>{new Date(activity.date).toLocaleString()}</Typography>
                     </Box>
                   </Box>
                 ))}
+              </Box>
+           </PremiumCard>
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+           <PremiumCard sx={{ p: 4, mt: 4 }}>
+              <Typography variant="h6" fontWeight={900} sx={{ mb: 3 }}>Établissements Récents</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {schools.slice(0, 5).map((school: any) => (
+                  <Box key={school.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderRadius: 3, border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05) } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                       <Avatar src={school.logo || '/logo.png'} sx={{ width: 40, height: 40, borderRadius: 1.5 }} />
+                       <Box>
+                          <Typography fontWeight={800}>{school.name}</Typography>
+                          <Typography variant="caption" color="text.disabled">{school.owner}</Typography>
+                       </Box>
+                    </Box>
+                    <Button size="small" onClick={() => handleTakeControl(school.id)} sx={{ fontWeight: 800 }}>Gérer</Button>
+                  </Box>
+                ))}
+                {schools.length === 0 && <Typography color="text.disabled" sx={{ py: 4, textAlign: 'center' }}>Aucun établissement trouvé</Typography>}
               </Box>
            </PremiumCard>
         </Grid>

@@ -257,29 +257,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
       <Toolbar sx={{ display: { xs: 'none', md: 'flex' } }} />
 
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        {settings.logo ? (
-          <Avatar 
-            src={settings.logo} 
-            variant="square"
-            sx={{ width: 44, height: 44, borderRadius: 2.5, bgcolor: 'background.paper', p: 0.5 }}
-          />
-        ) : (
-          <Box
-            sx={{
-              width: 44,
-              height: 44,
-              borderRadius: 2.5,
-              backgroundColor: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <SchoolIcon sx={{ color: 'primary.contrastText' }} />
-          </Box>
-        )}
+        <Avatar 
+          src={settings.logo || '/logo.png'} 
+          variant="square"
+          sx={{ width: 44, height: 44, borderRadius: 2.5, bgcolor: 'background.paper', p: 0.5 }}
+        />
         <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-          {(settings.establishment_name || settings.name || 'SCHOOL').split(' ')[0]}
+          {(settings.establishment_name || settings.name || 'XSCHOOL').split(' ')[0]}
         </Typography>
       </Box>
 

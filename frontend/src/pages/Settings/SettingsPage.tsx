@@ -665,6 +665,7 @@ export const SettingsPage: React.FC = () => {
               <Paper sx={{ ...glassStyle, textAlign: 'center', p: 4 }}>
                 <Typography variant="h6" fontWeight={800} sx={{ mb: 3 }}>Branding</Typography>
                 <input
+                  title="XSCHOOL"
                   type="file"
                   hidden
                   ref={logoInputRef}
@@ -672,7 +673,7 @@ export const SettingsPage: React.FC = () => {
                   onChange={handleLogoChange}
                 />
                 <Avatar 
-                  src={settings.logo ? (settings.logo.startsWith('http') ? settings.logo : `http://localhost:8000${settings.logo}`) : undefined}
+                  src={settings.logo || '/logo.png'}
                   sx={{ width: 140, height: 140, mb: 3, mx: 'auto', border: `4px solid ${alpha(theme.palette.primary.main, 0.1)}`, bgcolor: 'background.default', borderRadius: 4 }}
                 >
                   {!settings.logo && <SchoolIcon sx={{ fontSize: 60, color: 'primary.main' }} />}
