@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<User>;
   logout: () => void;
   updateUser: (userData: User) => void;
   hasRole: (roles: UserRole[]) => boolean;
@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (username: string, password: string, rememberMe: boolean = false): Promise<void> => {
+  const login = useCallback(async (username: string, password: string, rememberMe: boolean = false): Promise<User> => {
     const data = await authService.login({ username, password });
     const storage = rememberMe ? localStorage : sessionStorage;
 
@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userProfile = await authService.getCurrentUser();
     setUser(userProfile);
     storage.setItem('user', JSON.stringify(userProfile));
+    return userProfile;
   }, []);
 
   const logout = useCallback(() => {
