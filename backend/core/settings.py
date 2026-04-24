@@ -208,7 +208,7 @@ CLOUDINARY_STORAGE = {
 }
 
 # Use Cloudinary for media files
-DEFAULT_FILE_STORAGE = 'cloudinary_storageOxmicPlevM5LXbd8aHy-U5vB3Bc.storage.MediaCloudinaryStorage'
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Token for URL-based migrations
 MIGRATION_TOKEN = os.environ.get('MIGRATION_TOKEN', 'xschool-safe-migrate-2026')
