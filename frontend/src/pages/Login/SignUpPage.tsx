@@ -274,34 +274,85 @@ const SignUpPage: React.FC = () => {
                             Vous pouvez choisir plusieurs options
                         </Typography>
                         
-                        <Grid container spacing={2} sx={{ mb: 4 }}>
-                            {establishmentTypes.map((type) => (
-                                <Grid size="grow" key={type.id}>
-                                    <Card 
-                                        sx={{ 
-                                            borderRadius: 3,
-                                            border: `2px solid ${formData.establishment_types.includes(type.id) ? theme.palette.primary.main : 'transparent'}`,
-                                            bgcolor: formData.establishment_types.includes(type.id) ? alpha(theme.palette.primary.main, 0.05) : 'background.paper',
-                                            transition: 'all 0.2s',
-                                            height: '100%'
-                                        }}
+                        <Grid container spacing={2} sx={{ mb: 4, justifyContent: 'center' }}>
+                            {establishmentTypes.map((type) => {
+                                const isSelected = formData.establishment_types.includes(type.id);
+                                return (
+                                    <Grid 
+                                        size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }} 
+                                        key={type.id}
+                                        sx={{ display: 'flex' }}
                                     >
-                                        <CardActionArea onClick={() => toggleType(type.id)} sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                                            <Box sx={{ 
-                                                p: 1, 
-                                                borderRadius: '50%', 
-                                                bgcolor: formData.establishment_types.includes(type.id) ? 'primary.main' : 'action.hover',
-                                                color: formData.establishment_types.includes(type.id) ? 'white' : 'text.secondary',
-                                                mb: 1
-                                            }}>
-                                                {formData.establishment_types.includes(type.id) ? <CheckCircleIcon /> : type.icon}
-                                            </Box>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{type.label}</Typography>
-                                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{type.description}</Typography>
-                                        </CardActionArea>
-                                    </Card>
-                                </Grid>
-                            ))}
+                                        <Card 
+                                            sx={{ 
+                                                width: '100%',
+                                                borderRadius: 4,
+                                                border: `2px solid ${isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.1)}`,
+                                                bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.02) : 'background.paper',
+                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                transform: isSelected ? 'scale(1.02)' : 'none',
+                                                boxShadow: isSelected 
+                                                    ? `0 12px 28px ${alpha(theme.palette.primary.main, 0.15)}` 
+                                                    : `0 4px 12px ${alpha(theme.palette.common.black, 0.03)}`,
+                                                '&:hover': {
+                                                    transform: 'translateY(-4px)',
+                                                    borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.4),
+                                                    boxShadow: `0 12px 24px ${alpha(theme.palette.common.black, 0.08)}`
+                                                }
+                                            }}
+                                        >
+                                            <CardActionArea 
+                                                onClick={() => toggleType(type.id)} 
+                                                sx={{ 
+                                                    p: { xs: 2.5, md: 3 }, 
+                                                    height: '100%', 
+                                                    display: 'flex', 
+                                                    flexDirection: 'column', 
+                                                    alignItems: 'center', 
+                                                    textAlign: 'center' 
+                                                }}
+                                            >
+                                                <Box sx={{ 
+                                                    width: 56,
+                                                    height: 56, 
+                                                    borderRadius: 4, 
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    bgcolor: isSelected ? 'primary.main' : alpha(theme.palette.primary.main, 0.05),
+                                                    color: isSelected ? 'white' : 'primary.main',
+                                                    mb: 2,
+                                                    transition: '0.3s',
+                                                    position: 'relative',
+                                                    boxShadow: isSelected ? `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}` : 'none'
+                                                }}>
+                                                    {type.icon}
+                                                    {isSelected && (
+                                                        <Box sx={{ 
+                                                            position: 'absolute', 
+                                                            top: -6, 
+                                                            right: -6, 
+                                                            bgcolor: 'white', 
+                                                            borderRadius: '50%', 
+                                                            display: 'flex',
+                                                            color: 'primary.main',
+                                                            boxShadow: 1
+                                                        }}>
+                                                            <CheckCircleIcon sx={{ fontSize: 20 }} />
+                                                        </Box>
+                                                    )}
+                                                </Box>
+                                                <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 0.5, lineHeight: 1.2 }}>
+                                                    {type.label}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.8 }}>
+                                                    {type.description}
+                                                </Typography>
+                                            </CardActionArea>
+                                        </Card>
+                                    </Grid>
+                                );
+                            })}
                         </Grid>
 
                         <Box sx={{ display: 'flex', gap: 2 }}>
