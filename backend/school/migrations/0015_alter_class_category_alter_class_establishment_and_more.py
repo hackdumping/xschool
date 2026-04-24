@@ -20,37 +20,37 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='class',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='grade',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='period',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='schoolconfiguration',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='schoolyear',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='student',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='subject',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.CreateModel(
             name='SanctionType',
@@ -58,7 +58,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=100)),
                 ('default_amount', models.DecimalField(decimal_places=2, max_digits=12)),
-                ('establishment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment')),
+                ('establishment', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment')),
             ],
             options={
                 'abstract': False,
@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
                 ('base_salary', models.DecimalField(decimal_places=2, default=0, max_digits=12)),
                 ('date_joined', models.DateField(auto_now_add=True)),
                 ('is_active', models.BooleanField(default=True)),
-                ('establishment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment')),
+                ('establishment', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment')),
             ],
             options={
                 'abstract': False,
@@ -89,7 +89,7 @@ class Migration(migrations.Migration):
                 ('amount', models.DecimalField(decimal_places=2, max_digits=12)),
                 ('date', models.DateField()),
                 ('reason', models.TextField(blank=True, null=True)),
-                ('establishment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment')),
+                ('establishment', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment')),
                 ('sanction_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='school.sanctiontype')),
                 ('teacher', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sanctions', to='school.teacher')),
             ],
