@@ -302,7 +302,15 @@ export const SettingsPage: React.FC = () => {
 
   const handleSave = async (section: string) => {
     try {
-      await updateSettings(formData);
+      // Clean data: replace empty strings with null for date fields to satisfy backend validation
+      const cleanedData = { ...formData };
+      ['tranche_1_deadline', 'tranche_2_deadline', 'tranche_3_deadline'].forEach(key => {
+        if (cleanedData[key as keyof typeof cleanedData] === '') {
+          (cleanedData as any)[key] = null;
+        }
+      });
+
+      await updateSettings(cleanedData);
       showNotification(`${section} mis à jour avec succès`, 'success');
     } catch (error: any) {
       console.error('Save failed:', error);

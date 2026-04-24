@@ -1,0 +1,246 @@
+[
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$8ES5TsinwWybDHp2noQ33E$MQwY7oC94+tFgDvUb4+6fOEiuGOxbm0NiDG4I7ULtP4=",
+    "last_login": "2026-04-21T11:57:59.429Z",
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "admin@xschool.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-04-07T01:14:00.626Z",
+    "establishment": null,
+    "role": "admin",
+    "avatar": "",
+    "failed_login_attempts": 0,
+    "last_failed_login": "2026-04-23T14:02:36.727Z",
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$Ki9swPbXnkkZv0Yg75dZuv$xFchGp2Uckd2hQasHXEGtgRRS4n/pc8Wq0fhvXVHt94=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "claire",
+    "first_name": "Claire",
+    "last_name": "",
+    "email": "claire@xschool.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-04-07T01:14:01.369Z",
+    "establishment": 1,
+    "role": "admin",
+    "avatar": "",
+    "failed_login_attempts": 0,
+    "last_failed_login": null,
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$z4VdEOUDUvsmIkxFmzOPRf$VVd/COz9jlxwfVsc/+MblhWQ2j64tFjowWC4pq+z2eo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "laurent",
+    "first_name": "Laurent",
+    "last_name": "",
+    "email": "laurent@xschool.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-04-07T01:14:02.099Z",
+    "establishment": 1,
+    "role": "professeur",
+    "avatar": "",
+    "failed_login_attempts": 0,
+    "last_failed_login": null,
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$pn7tHmwU6vLzu9DOM6Uz8d$Q5Osrsvp+gHvfRZ57sJph1tz4CT+izCFJEPItneihOc=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "testuser456",
+    "first_name": "Test",
+    "last_name": "User",
+    "email": "test456@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-04-10T01:51:28.300Z",
+    "establishment": 1,
+    "role": "professeur",
+    "avatar": "",
+    "failed_login_attempts": 0,
+    "last_failed_login": null,
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$zBZVYHVoFtQ1CwE6UgdwKH$3FISAhMvxTd7i45UvDE5yhKV5vcFgLDJQItjyIh9KJE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "testuser123",
+    "first_name": "Admin",
+    "last_name": "User",
+    "email": "testuser123@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-04-13T06:56:41.536Z",
+    "establishment": 1,
+    "role": "professeur",
+    "avatar": "",
+    "failed_login_attempts": 0,
+    "last_failed_login": null,
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$gXmqedUS2fMSHDuO1CTfXs$qXOn7asmU+Z7P7ANbJBsncOfqLdWtLtVw+1Pev2BCrM=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "testuser001",
+    "first_name": "Admin",
+    "last_name": "Admin",
+    "email": "testuser001@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-04-13T08:13:53.274Z",
+    "establishment": 1,
+    "role": "professeur",
+    "avatar": "",
+    "failed_login_attempts": 0,
+    "last_failed_login": null,
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$duoOveAXGKNwW3e4UBxZWm$pdGoT0Ubbwm/gFkDmFv0JZ2mRHpmQImK8t1rQ+54LwY=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "tester",
+    "first_name": "Tester",
+    "last_name": "User",
+    "email": "tester@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-04-13T09:47:10.846Z",
+    "establishment": 1,
+    "role": "professeur",
+    "avatar": "",
+    "failed_login_attempts": 0,
+    "last_failed_login": null,
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$6Y9XiLUoTHzFE3UuXCOFr0$U02TVs2HBgDYdhtJ3qZnn/xPOdabkd3X1Cl3pte8YX8=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "admin_test",
+    "first_name": "Admin",
+    "last_name": "Test",
+    "email": "admin@test.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-04-21T06:11:33.899Z",
+    "establishment": 1,
+    "role": "professeur",
+    "avatar": "",
+    "failed_login_attempts": 0,
+    "last_failed_login": null,
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$MkB7CSuKB4vmcSdZAXxW47$x+WHmhOyCXnEHffTpjG14b8HUU8nAzUFWenz/NIt+9w=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "test",
+    "first_name": "Test",
+    "last_name": "Test",
+    "email": "test@test.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-04-21T23:53:13.563Z",
+    "establishment": 2,
+    "role": "admin",
+    "avatar": "avatars/camera_ring_6.jpg",
+    "failed_login_attempts": 0,
+    "last_failed_login": "2026-04-24T00:46:00.360Z",
+    "is_locked": false,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "tenants.establishment",
+  "pk": 1,
+  "fields": {
+    "name": "College merveille",
+    "selected_types": [
+      "general",
+      "technique"
+    ],
+    "address": "Yaoundé, Cameroun",
+    "phone": null,
+    "email": null,
+    "logo": "",
+    "owner": [
+      "claire"
+    ],
+    "created_at": "2026-04-21T22:47:11.912Z"
+  }
+},
+{
+  "model": "tenants.establishment",
+  "pk": 2,
+  "fields": {
+    "name": "École Dumping",
+    "selected_types": [
+      "primaire"
+    ],
+    "address": null,
+    "phone": null,
+    "email": null,
+    "logo": "",
+    "owner": [
+      "test"
+    ],
+    "created_at": "2026-04-21T23:53:14.287Z"
+  }
+}
+]
