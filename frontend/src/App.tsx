@@ -75,7 +75,11 @@ function App() {
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/settings" element={<SettingsPage />} />
                             <Route path="/receipt/:id" element={<ReceiptPage />} />
-                            <Route path="/superadmin" element={<Navigate to="/superadmin/dashboard" replace />} />
+                            <Route path="/superadmin/dashboard" element={<SuperDashboard />} />
+                            <Route path="/superadmin/schools" element={<SuperDashboard />} />
+                            <Route path="/superadmin/users" element={<SuperDashboard />} />
+                            <Route path="/superadmin/performance" element={<SuperDashboard />} />
+                            <Route path="/superadmin/system" element={<SuperDashboard />} />
                             <Route path="/superadmin/:tab" element={<SuperDashboard />} />
                           </Routes>
                         </Layout>
