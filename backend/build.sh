@@ -18,6 +18,9 @@ pip install -r requirements.txt
 echo "Running migrations..."
 python manage.py migrate --noinput
 
+# Ensure the static directory exists
+mkdir -p staticfiles
+
 # Collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
