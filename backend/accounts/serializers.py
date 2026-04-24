@@ -71,11 +71,12 @@ class SignUpSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
             # 1. Create User first (as we need owner for Establishment)
-            user = User.objects.create(role='admin', **validated_data)
+            # Use all_objects to bypass tenant filtering during creation
+            user = User.all_objects.create(role='admin', **validated_data)
             user.set_password(password)
             user.save()
 
-            # 2. Create Establishment
+            # 2. Create Establishment (Establishment is NOT a TenantModel, it's the root)
             establishment = Establishment.objects.create(
                 name=establishment_name,
                 owner=user,
@@ -86,9 +87,9 @@ class SignUpSerializer(serializers.ModelSerializer):
             user.establishment = establishment
             user.save()
 
-            # 4. Create initial school configuration for this tenant with establishment data
+            # 4. Create initial school configuration for this tenant
             from school.models import SchoolConfiguration
-            SchoolConfiguration.objects.create(
+            SchoolConfiguration.all_objects.create(
                 establishment=establishment,
                 name=establishment_name,
                 email=validated_data.get('email'),

@@ -262,8 +262,23 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
           variant="square"
           sx={{ width: 44, height: 44, borderRadius: 2.5, bgcolor: 'background.paper', p: 0.5 }}
         />
-        <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-          {(settings.establishment_name || settings.name || 'XSCHOOL').split(' ')[0]}
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            fontWeight: 800, 
+            color: 'primary.main', 
+            letterSpacing: '-0.02em', 
+            textTransform: 'uppercase',
+            fontSize: (settings.establishment_name || settings.name || '').length > 15 ? '0.9rem' : '1.1rem',
+            lineHeight: 1.2,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {settings.establishment_name || settings.name || 'XSCHOOL'}
         </Typography>
       </Box>
 
