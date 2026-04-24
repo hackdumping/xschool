@@ -355,12 +355,23 @@ class DataImportView(APIView):
 
         out = io.StringIO()
         try:
-            # Run loaddata on the temporary file
-            call_command('loaddata', tmp_path, stdout=out)
+            # Run loaddata on the temporary file with natural keys
+            call_command('loaddata', tmp_path, stdout=out, natural_foreign=True, natural_primary=True)
             result = out.getvalue()
+            
+            # Post-import verification counts
+            counts = {
+                "establishments": Establishment.objects.count(),
+                "users": User.objects.count(),
+                "students": Student.objects.count(),
+                "classes": Class.objects.count(),
+                "payments": Payment.objects.count(),
+            }
+            
             return Response({
                 "message": "Data imported successfully",
-                "output": result
+                "output": result,
+                "counts": counts
             })
         except Exception as e:
             return Response({
