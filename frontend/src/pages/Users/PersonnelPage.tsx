@@ -26,7 +26,6 @@ import {
   Badge as BadgeIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
-  Shield as ShieldIcon,
   Group as GroupIcon,
 } from '@mui/icons-material';
 import { authService } from '@/services/api';
@@ -153,7 +152,7 @@ export const PersonnelPage: React.FC = () => {
 
       <Grid container spacing={3}>
         {users.map((staff) => (
-          <Grid item xs={12} sm={6} md={4} key={staff.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={staff.id}>
             <Card 
               sx={{ 
                 borderRadius: 4, 
@@ -235,7 +234,7 @@ export const PersonnelPage: React.FC = () => {
           </Typography>
           
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Prénom"
@@ -245,7 +244,7 @@ export const PersonnelPage: React.FC = () => {
                 InputProps={{ sx: { borderRadius: 3 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Nom"
@@ -255,7 +254,7 @@ export const PersonnelPage: React.FC = () => {
                 InputProps={{ sx: { borderRadius: 3 } }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Nom d'utilisateur (Identifiant)"
@@ -266,7 +265,7 @@ export const PersonnelPage: React.FC = () => {
                 InputProps={{ sx: { borderRadius: 3 } }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Email"
@@ -278,7 +277,7 @@ export const PersonnelPage: React.FC = () => {
                 InputProps={{ sx: { borderRadius: 3 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 select
@@ -293,7 +292,7 @@ export const PersonnelPage: React.FC = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Mot de passe initial"

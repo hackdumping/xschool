@@ -31,8 +31,6 @@ import {
   ListItemIcon,
   Alert,
   List,
-  ListItem,
-  ListItemText,
   Stack,
 } from '@mui/material';
 import {
@@ -42,12 +40,11 @@ import {
   Visibility as VisibilityIcon,
   MoreVert as MoreVertIcon,
   Search as SearchIcon,
-  Settings as SettingsIcon,
   Payment as PaymentIcon,
   Gavel as SanctionIcon,
   CloudDownload as DownloadIcon,
 } from '@mui/icons-material';
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { schoolService, financeService } from '@/services/api';
 import { useNotification } from '@/contexts/NotificationContext';

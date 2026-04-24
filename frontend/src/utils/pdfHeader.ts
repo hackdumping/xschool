@@ -1,4 +1,4 @@
-import { jsPDF } from 'jspdf';
+// Utility for PDF generation
 
 /**
  * Adds a Cameroonian professional header to a jsPDF document.
