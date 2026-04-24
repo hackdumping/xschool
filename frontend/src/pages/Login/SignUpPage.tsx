@@ -25,7 +25,7 @@ import {
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '@/services/api';
 import { AuthLayout } from './components/AuthLayout';
-import { Card, CardActionArea, Grid, useTheme, alpha } from '@mui/material';
+import { Card, CardActionArea, useTheme, alpha } from '@mui/material';
 
 const SignUpPage: React.FC = () => {
     const theme = useTheme();
