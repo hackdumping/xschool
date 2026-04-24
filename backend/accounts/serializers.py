@@ -1,24 +1,43 @@
 from rest_framework import serializers
 from .models import User, Notification
 from school.models import SchoolConfiguration
+from tenants.models import Establishment
+from tenants.serializers import EstablishmentSerializer
+from django.db import transaction
 import re
 
 class UserSerializer(serializers.ModelSerializer):
     firstName = serializers.CharField(source='first_name', required=False)
     lastName = serializers.CharField(source='last_name', required=False)
+    establishment_info = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'firstName', 'lastName', 'role', 'avatar')
-        read_only_fields = ('id',)
+        fields = ('id', 'username', 'email', 'firstName', 'lastName', 'role', 'avatar', 'establishment', 'establishment_info')
+        read_only_fields = ('id', 'establishment_info')
+
+    def get_establishment_info(self, obj):
+        from tenants.models import get_current_tenant
+        # If impersonating (tenant set), show THAT establishment's info for SuperAdmins
+        if obj.is_superuser or obj.username == 'admin':
+            tenant = get_current_tenant()
+            if tenant:
+                return EstablishmentSerializer(tenant).data
+        
+        # Fallback to user's native establishment
+        if obj.establishment:
+            return EstablishmentSerializer(obj.establishment).data
+        return None
 
 class SignUpSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password_confirm = serializers.CharField(write_only=True)
+    establishment_name = serializers.CharField(write_only=True)
+    establishment_types = serializers.ListField(child=serializers.CharField(), write_only=True)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'password_confirm', 'first_name', 'last_name')
+        fields = ('username', 'email', 'password', 'password_confirm', 'first_name', 'last_name', 'establishment_name', 'establishment_types')
 
     def validate(self, data):
         if data['password'] != data['password_confirm']:
@@ -45,11 +64,35 @@ class SignUpSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        validated_data.pop('password_confirm')
+        password_confirm = validated_data.pop('password_confirm')
         password = validated_data.pop('password')
-        user = User.objects.create(role='professeur', **validated_data)
-        user.set_password(password)
-        user.save()
+        establishment_name = validated_data.pop('establishment_name')
+        establishment_types = validated_data.pop('establishment_types')
+
+        with transaction.atomic():
+            # 1. Create User first (as we need owner for Establishment)
+            user = User.objects.create(role='admin', **validated_data)
+            user.set_password(password)
+            user.save()
+
+            # 2. Create Establishment
+            establishment = Establishment.objects.create(
+                name=establishment_name,
+                owner=user,
+                selected_types=establishment_types
+            )
+
+            # 3. Link User back to Establishment
+            user.establishment = establishment
+            user.save()
+
+            # 4. Create initial school configuration for this tenant
+            from school.models import SchoolConfiguration
+            SchoolConfiguration.objects.create(
+                establishment=establishment,
+                name=establishment_name
+            )
+
         return user
 
 class NotificationSerializer(serializers.ModelSerializer):

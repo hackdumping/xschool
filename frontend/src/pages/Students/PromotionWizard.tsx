@@ -25,14 +25,15 @@ import {
   TableRow,
   ToggleButtonGroup,
   ToggleButton,
-
-  Tooltip,
+  Checkbox,
+  Stack,
   useTheme,
   useMediaQuery,
   alpha,
-  LinearProgress,
   Avatar,
+  LinearProgress,
   Divider,
+  Tooltip,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -43,10 +44,12 @@ import {
   ArrowForward as ArrowForwardIcon,
   Group as GroupIcon,
   School as SchoolIcon,
+  AutoFixHigh as BulkIcon,
 } from '@mui/icons-material';
 import { schoolService } from '@/services/api';
 import type { Student, Class } from '@/types';
 import { useNotification } from '@/contexts/NotificationContext';
+import { getNextAcademicYear } from '@/utils/academicYear';
 
 interface PromotionWizardProps {
   open: boolean;
@@ -73,35 +76,28 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [sourceClassId, setSourceClassId] = useState('');
-  const [targetYearId, setTargetYearId] = useState('');
-  const [schoolYears, setSchoolYears] = useState<any[]>([]);
+  const [targetYear, setTargetYear] = useState('');
   const [sourceStudents, setSourceStudents] = useState<Student[]>([]);
   const [decisions, setDecisions] = useState<Record<string, PromotionDecision>>({});
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  // Bulk action states
+  const [bulkStatus, setBulkStatus] = useState<'promoted' | 'repeating' | 'leaving' | ''>('');
+  const [bulkTargetClassId, setBulkTargetClassId] = useState('');
 
   const steps = ['Configuration', 'Traitement des élèves', 'Confirmation'];
 
   useEffect(() => {
     if (open) {
-      const fetchInitialData = async () => {
-        try {
-          const res = await schoolService.getSchoolYears();
-          setSchoolYears(res.data);
-        } catch (error) {
-          console.error('Failed to fetch school years', error);
-        }
-      };
-      fetchInitialData();
-    }
-  }, [open]);
-
-  // Reset state when opening/closing
-  useEffect(() => {
-    if (!open) {
+      setTargetYear(getNextAcademicYear());
+    } else {
       setActiveStep(0);
       setSourceClassId('');
-      setTargetYearId('');
       setSourceStudents([]);
       setDecisions({});
+      setSelectedIds([]);
+      setBulkStatus('');
+      setBulkTargetClassId('');
     }
   }, [open]);
 
@@ -122,7 +118,7 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
         };
       });
       setDecisions(initialDecisions);
-    } catch (error) {
+    } catch (_error) {
       showNotification('Erreur lors du chargement des élèves', 'error');
     } finally {
       setLoading(false);
@@ -149,8 +145,49 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
   };
 
   const targetClasses = useMemo(() => {
-    return classesList.filter(c => c.schoolYear === targetYearId);
-  }, [classesList, targetYearId]);
+    // Note: in a real scenario, we might need to verify the year ID from backend
+    // but the request asks for automation based on current date.
+    return classesList; // Listing all available classes for destination
+  }, [classesList]);
+
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      setSelectedIds(sourceStudents.map(s => s.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const applyBulkAction = () => {
+    if (!bulkStatus) {
+      showNotification('Veuillez sélectionner une décision groupée', 'warning');
+      return;
+    }
+    if (selectedIds.length === 0) {
+      showNotification('Aucun élève sélectionné', 'warning');
+      return;
+    }
+
+    setDecisions(prev => {
+      const updated = { ...prev };
+      selectedIds.forEach(id => {
+        updated[id] = {
+          ...updated[id],
+          status: bulkStatus as 'promoted' | 'repeating' | 'leaving',
+          targetClassId: bulkTargetClassId || updated[id].targetClassId
+        };
+      });
+      return updated;
+    });
+    
+    showNotification(`${selectedIds.length} élèves mis à jour`, 'success');
+  };
 
   const handleFinish = async () => {
     try {
@@ -198,7 +235,7 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
                     label="Classe Source"
                   >
                     {classesList.map(c => (
-                      <MenuItem key={c.id} value={c.id}>{c.name} ({c.level})</MenuItem>
+                      <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -207,21 +244,14 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
                 <Typography variant="subtitle1" fontWeight={600} gutterBottom>
                   2. Année Scolaire de Destination
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Sélectionnez l'année vers laquelle les élèves admis seront transférés.
-                </Typography>
-                <FormControl fullWidth>
-                  <InputLabel>Année Cible</InputLabel>
-                  <Select
-                    value={targetYearId}
-                    onChange={(e) => setTargetYearId(e.target.value)}
-                    label="Année Cible"
-                  >
-                    {schoolYears.map(y => (
-                      <MenuItem key={y.id} value={y.id}>{y.year}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Box sx={{ p: 2, bgcolor: alpha(theme.palette.info.main, 0.1), borderRadius: 2, border: '1px solid', borderColor: 'info.light' }}>
+                   <Typography variant="h6" color="info.main" fontWeight={700}>
+                     {targetYear}
+                   </Typography>
+                   <Typography variant="caption" color="text.secondary">
+                     Calculé automatiquement (Transition en Septembre)
+                   </Typography>
+                </Box>
               </Grid>
             </Grid>
             {sourceClassId && (
@@ -243,78 +273,149 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
       case 1:
         return (
           <Box sx={{ py: 2 }}>
-            <TableContainer component={Box} sx={{ maxHeight: 400 }}>
+            {/* Bulk Actions Bar */}
+            <Card sx={{ mb: 3, bgcolor: alpha(theme.palette.secondary.main, 0.04), border: '1px solid', borderColor: 'divider' }}>
+              <CardContent sx={{ py: '12px !important' }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BulkIcon color="secondary" />
+                    <Typography variant="subtitle2" fontWeight={700} noWrap>
+                      Actions Groupées ({selectedIds.length})
+                    </Typography>
+                  </Box>
+                  <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel>Décision groupée</InputLabel>
+                    <Select
+                      value={bulkStatus}
+                      onChange={(e) => setBulkStatus(e.target.value as any)}
+                      label="Décision groupée"
+                    >
+                      <MenuItem value="promoted">Tous Admis</MenuItem>
+                      <MenuItem value="repeating">Tous Redoublants</MenuItem>
+                      <MenuItem value="leaving">Tous Sortants</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {bulkStatus !== 'leaving' && (
+                    <FormControl size="small" sx={{ minWidth: 200 }}>
+                      <InputLabel>Classe cible groupée</InputLabel>
+                      <Select
+                        value={bulkTargetClassId}
+                        onChange={(e) => setBulkTargetClassId(e.target.value)}
+                        label="Classe cible groupée"
+                      >
+                        <MenuItem value=""><em>Conserver choix individuel</em></MenuItem>
+                        {targetClasses.map(tc => (
+                          <MenuItem key={tc.id} value={tc.id}>{tc.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
+                  <Button 
+                    variant="contained" 
+                    color="secondary" 
+                    size="small"
+                    onClick={applyBulkAction}
+                    disabled={selectedIds.length === 0}
+                    sx={{ fontWeight: 700 }}
+                  >
+                    Appliquer
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            <TableContainer component={Box} sx={{ maxHeight: 400, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Élève</TableCell>
-                    <TableCell align="center">Décision</TableCell>
-                    <TableCell>Classe de destination</TableCell>
+                    <TableCell padding="checkbox" sx={{ bgcolor: 'background.neutral' }}>
+                      <Checkbox
+                        indeterminate={selectedIds.length > 0 && selectedIds.length < sourceStudents.length}
+                        checked={sourceStudents.length > 0 && selectedIds.length === sourceStudents.length}
+                        onChange={handleSelectAll}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Élève</TableCell>
+                    <TableCell align="center" sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Décision</TableCell>
+                    <TableCell sx={{ bgcolor: 'background.neutral', fontWeight: 700 }}>Classe de destination</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sourceStudents.map((s) => (
-                    <TableRow key={s.id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Avatar sx={{ width: 32, height: 32, fontSize: '0.8rem' }}>
-                            {s.lastName[0]}{s.firstName[0]}
-                          </Avatar>
-                          <Typography variant="body2" fontWeight={500}>
-                            {s.lastName} {s.firstName}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell align="center">
-                        <ToggleButtonGroup
-                          value={decisions[s.id]?.status}
-                          exclusive
-                          onChange={(_, val) => val && updateDecision(s.id, { status: val })}
-                          size="small"
-                          color="primary"
-                        >
-                          <ToggleButton value="promoted" sx={{ borderLeft: 1, borderColor: 'divider' }}>
-                            <Tooltip title="Admis / Promu">
-                              <TrendingUpIcon fontSize="small" color={decisions[s.id]?.status === 'promoted' ? 'inherit' : 'success'} />
-                            </Tooltip>
-                          </ToggleButton>
-                          <ToggleButton value="repeating">
-                            <Tooltip title="Échoué / Redoublant">
-                              <RepeatIcon fontSize="small" color={decisions[s.id]?.status === 'repeating' ? 'inherit' : 'warning'} />
-                            </Tooltip>
-                          </ToggleButton>
-                          <ToggleButton value="leaving">
-                            <Tooltip title="Quitté / Sorti">
-                              <ExitToAppIcon fontSize="small" color={decisions[s.id]?.status === 'leaving' ? 'inherit' : 'error'} />
-                            </Tooltip>
-                          </ToggleButton>
-                        </ToggleButtonGroup>
-                      </TableCell>
-                      <TableCell>
-                        {decisions[s.id]?.status !== 'leaving' && (
-                          <FormControl fullWidth size="small">
-                            <Select
-                              value={decisions[s.id]?.targetClassId}
-                              onChange={(e) => updateDecision(s.id, { targetClassId: e.target.value })}
-                              displayEmpty
-                            >
-                              <MenuItem value="">
-                                <em>Choisir une classe...</em>
-                              </MenuItem>
-                              {targetClasses.map(tc => (
-                                <MenuItem key={tc.id} value={tc.id}>{tc.name}</MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        )}
-                        {decisions[s.id]?.status === 'leaving' && (
-                          <Typography variant="caption" color="error" fontWeight={600}>
-                            L'élève quittera l'établissement
-                          </Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {sourceStudents.map((s) => {
+                    const isItemSelected = selectedIds.includes(s.id);
+                    return (
+                      <TableRow 
+                        key={s.id} 
+                        hover 
+                        selected={isItemSelected}
+                        sx={{ '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.04) } }}
+                      >
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={isItemSelected}
+                            onChange={() => handleSelectOne(s.id)}
+                          />
+                        </TableCell>
+                        <TableCell onClick={() => handleSelectOne(s.id)} sx={{ cursor: 'pointer' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem', bgcolor: isItemSelected ? 'primary.main' : 'grey.400' }}>
+                              {(s.lastName && s.lastName[0]) || ''}{(s.firstName && s.firstName[0]) || ''}
+                            </Avatar>
+                            <Typography variant="body2" fontWeight={isItemSelected ? 600 : 400}>
+                              {s.lastName} {s.firstName}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell align="center">
+                          <ToggleButtonGroup
+                            onChange={(_, val: 'promoted' | 'repeating' | 'leaving' | null) => val && updateDecision(s.id, { status: val })}
+                            size="small"
+                            color="primary"
+                          >
+                            <ToggleButton value="promoted">
+                              <Tooltip title="Admis">
+                                <TrendingUpIcon fontSize="small" color={decisions[s.id]?.status === 'promoted' ? 'inherit' : 'success'} />
+                              </Tooltip>
+                            </ToggleButton>
+                            <ToggleButton value="repeating">
+                              <Tooltip title="Redoublant">
+                                <RepeatIcon fontSize="small" color={decisions[s.id]?.status === 'repeating' ? 'inherit' : 'warning'} />
+                              </Tooltip>
+                            </ToggleButton>
+                            <ToggleButton value="leaving">
+                              <Tooltip title="Sortant">
+                                <ExitToAppIcon fontSize="small" color={decisions[s.id]?.status === 'leaving' ? 'inherit' : 'error'} />
+                              </Tooltip>
+                            </ToggleButton>
+                          </ToggleButtonGroup>
+                        </TableCell>
+                        <TableCell>
+                          {decisions[s.id]?.status !== 'leaving' && (
+                            <FormControl fullWidth size="small">
+                              <Select
+                                value={decisions[s.id]?.targetClassId}
+                                onChange={(e) => updateDecision(s.id, { targetClassId: e.target.value })}
+                                displayEmpty
+                              >
+                                <MenuItem value="">
+                                  <em>Choisir...</em>
+                                </MenuItem>
+                                {targetClasses.map(tc => (
+                                  <MenuItem key={tc.id} value={tc.id}>{tc.name}</MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                          {decisions[s.id]?.status === 'leaving' && (
+                            <Typography variant="caption" color="error" fontWeight={600}>
+                              Sortie définitive
+                            </Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>

@@ -9,19 +9,26 @@ from accounts.views import UserViewSet, SignUpView, PasswordResetView, LoginView
 from school.views import (
     SchoolYearViewSet, ClassViewSet, StudentViewSet,
     SubjectViewSet, PeriodViewSet, GradeViewSet,
-    SchoolConfigurationViewSet
+    SchoolConfigurationViewSet,
+    TeacherViewSet, SanctionTypeViewSet, TeacherSanctionViewSet
 )
 from finance.views import (
-    TrancheConfigViewSet, PaymentViewSet, ExpenseViewSet, TuitionTemplateViewSet
+    TrancheConfigViewSet, PaymentViewSet, ExpenseViewSet, TuitionTemplateViewSet,
+    TeacherPaymentViewSet
 )
 from agenda.views import CalendarEventViewSet
 from core.views import DashboardStatsView, MigrationView, DataImportView
+from core.admin_views import GlobalMonitorView
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'school-years', SchoolYearViewSet)
 router.register(r'classes', ClassViewSet)
 router.register(r'students', StudentViewSet)
+router.register(r'teachers', TeacherViewSet)
+router.register(r'sanction-types', SanctionTypeViewSet)
+router.register(r'teacher-sanctions', TeacherSanctionViewSet)
+router.register(r'teacher-payments', TeacherPaymentViewSet)
 router.register(r'subjects', SubjectViewSet)
 router.register(r'periods', PeriodViewSet)
 router.register(r'grades', GradeViewSet)
@@ -44,6 +51,7 @@ urlpatterns = [
     path('api/migrate/', MigrationView.as_view(), name='migrate'),
     path('api/init-admin/', InitAdminView.as_view(), name='init_admin'),
     path('api/import-data/', DataImportView.as_view(), name='import_data'),
+    path('api/admin/monitor/', GlobalMonitorView.as_view(), name='global_monitor'),
 ]
 
 from django.conf import settings

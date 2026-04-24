@@ -54,6 +54,8 @@ import { DatePicker } from '@mui/x-date-pickers';
 import { financeService, schoolService } from '@/services/api';
 import type { Payment, PaymentMode, PaymentWithStudent, Class, TrancheConfig, Student } from '@/types';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useSchool } from '@/contexts/SchoolContext';
+import { addProfessionalHeader } from '@/utils/pdfHeader';
 
 const getModeLabel = (mode: PaymentMode) => {
   switch (mode) {
@@ -75,6 +77,7 @@ export const PaymentsPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { showNotification } = useNotification();
+  const { settings: schoolSettings } = useSchool();
   const [paymentsList, setPaymentsList] = useState<PaymentWithStudent[]>([]);
   const [classesList, setClassesList] = useState<Class[]>([]);
   const [tranchesList, setTranchesList] = useState<TrancheConfig[]>([]);
@@ -331,14 +334,10 @@ export const PaymentsPage: React.FC = () => {
         XLSX.writeFile(wb, `${filename}.xlsx`);
       } else if (exportFormat === 'pdf') {
         const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text('RAPPORT DES PAIEMENTS - XSCHOOL', 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Date d'export: ${new Date().toLocaleString()}`, 14, 22);
-        doc.text(`Type d'export: ${exportScope === 'filtered' ? 'Données filtrées' : 'Toute la base'}`, 14, 27);
+        const startY = addProfessionalHeader(doc, schoolSettings, `RAPPORT DES PAIEMENTS ${exportScope === 'filtered' ? '(Filtres appliqués)' : ''}`);
 
         autoTable(doc, {
-          startY: 32,
+          startY: startY,
           head: [['N° Reçu', 'Date', 'Élève', 'Classe', 'Montant', 'Mode']],
           body: dataToExport.map(p => [
             p.receiptNumber,

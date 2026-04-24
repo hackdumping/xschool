@@ -26,6 +26,13 @@ api.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Add Impersonation Header for SuperAdmins
+    const selectedTenantId = localStorage.getItem('selectedTenantId');
+    if (selectedTenantId) {
+        config.headers['X-Tenant-ID'] = selectedTenantId;
+    }
+
     return config;
 }, (error) => {
     return Promise.reject(error);
@@ -117,6 +124,10 @@ export const authService = {
         const response = await api.patch(`users/${id}/`, data);
         return response.data;
     },
+    getEstablishments: async () => {
+        const response = await api.get('users/establishments/');
+        return response.data;
+    },
 };
 
 export const notificationService = {
@@ -145,11 +156,22 @@ export const notificationService = {
 export const schoolService = {
     getSchoolYears: () => api.get('school-years/'),
     getClasses: () => api.get('classes/'),
-    getStudents: () => api.get('students/'),
-    createStudent: (data: any) => api.post('students/', data),
-    updateStudent: (id: string, data: any) => api.put(`students/${id}/`, data),
-    deleteStudent: (id: string) => api.delete(`students/${id}/`),
-    bulkPromoteStudents: (data: any[]) => api.post('students/bulk-promote/', data),
+  // Students
+  getStudents: (params?: any) => api.get('students/', { params }),
+  getStudent: (id: number) => api.get(`students/${id}/`),
+  createStudent: (data: any) => api.post('students/', data),
+  updateStudent: (id: number, data: any) => api.put(`students/${id}/`, data),
+  deleteStudent: (id: number) => api.delete(`students/${id}/`),
+  bulkPromoteStudents: (data: any[]) => api.post('students/bulk-promote/', data),
+  importStudents: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('students/import/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
     createClass: (data: any) => api.post('classes/', data),
     updateClass: (id: string, data: any) => api.put(`classes/${id}/`, data),
     deleteClass: (id: string) => api.delete(`classes/${id}/`),
@@ -167,6 +189,27 @@ export const schoolService = {
         }
         return api.patch('school/settings/', data);
     },
+    // Teachers & Sanctions
+    getTeachers: (params?: any) => api.get('teachers/', { params }),
+    createTeacher: (data: any) => api.post('teachers/', data),
+    updateTeacher: (id: string | number, data: any) => api.patch(`teachers/${id}/`, data),
+    deleteTeacher: (id: string | number) => api.delete(`teachers/${id}/`),
+    getSanctionTypes: () => api.get('sanction-types/'),
+    createSanctionType: (data: any) => api.post('sanction-types/', data),
+    updateSanctionType: (id: string | number, data: any) => api.patch(`sanction-types/${id}/`, data),
+    deleteSanctionType: (id: string | number) => api.delete(`sanction-types/${id}/`),
+    getTeacherSanctions: (teacherId?: string | number, params?: any) => {
+        let url = 'teacher-sanctions/';
+        const queryParams = new URLSearchParams();
+        if (teacherId) queryParams.append('teacher_id', teacherId.toString());
+        if (params) {
+            Object.keys(params).forEach(key => queryParams.append(key, params[key]));
+        }
+        const qs = queryParams.toString();
+        return api.get(`${url}${qs ? `?${qs}` : ''}`);
+    },
+    createTeacherSanction: (data: any) => api.post('teacher-sanctions/', data),
+    deleteTeacherSanction: (id: string | number) => api.delete(`teacher-sanctions/${id}/`),
 };
 
 export const financeService = {
@@ -183,6 +226,9 @@ export const financeService = {
     deleteExpense: (id: string) => api.delete(`expenses/${id}/`),
     getTuitionTemplates: () => api.get('tuition-templates/'),
     updateTuitionTemplate: (id: number, data: any) => api.patch(`tuition-templates/${id}/`, data),
+    // Teacher Payments
+    getTeacherPayments: (teacherId?: string | number) => api.get(`teacher-payments/${teacherId ? `?teacher_id=${teacherId}` : ''}`),
+    createTeacherPayment: (data: any) => api.post('teacher-payments/', data),
 };
 
 export const agendaService = {

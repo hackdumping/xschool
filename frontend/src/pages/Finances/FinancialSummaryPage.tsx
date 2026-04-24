@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addProfessionalHeader } from '@/utils/pdfHeader';
 import {
   Box,
   Card,
@@ -109,7 +110,7 @@ export const FinancialSummaryPage: React.FC = () => {
   const handleExportData = () => {
     if (!stats) return;
 
-    const filename = `Bilan_Financier_${new Date().toISOString().split('T')[0]}`;
+    const filename = `Bilan_Financier_${(settings.establishment_name || settings.name).replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}`;
 
     // Data for Class Summary table
     const tableData = classSummaries.map(s => ({
@@ -145,17 +146,13 @@ export const FinancialSummaryPage: React.FC = () => {
         XLSX.writeFile(wb, `${filename}.xlsx`);
       } else if (exportFormat === 'pdf') {
         const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.text(`BILAN FINANCIER - ${settings.name.toUpperCase()}`, 14, 20);
-
-        doc.setFontSize(10);
-        doc.text(`Date d'exportation : ${new Date().toLocaleString()}`, 14, 30);
+        const startY = addProfessionalHeader(doc, settings, `BILAN FINANCIER GLOBAL`);
 
         // Summary Block
         doc.setFontSize(14);
-        doc.text('Résumé Global', 14, 45);
+        doc.text('Résumé Global', 14, startY + 10);
         autoTable(doc, {
-          startY: 50,
+          startY: startY + 15,
           head: [['Indicateur', 'Valeur']],
           body: summaryData.map(item => [item.Libellé, item.Valeur]),
           theme: 'striped',
@@ -251,8 +248,8 @@ export const FinancialSummaryPage: React.FC = () => {
             </Box>
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <Typography variant="h5" fontWeight="bold" align="center" color="primary" sx={{ textTransform: 'uppercase' }}>{settings.name}</Typography>
-            <Typography variant="subtitle2" align="center">L'excellence au service de l'éducation</Typography>
+            <Typography variant="h5" fontWeight="bold" align="center" color="primary" sx={{ textTransform: 'uppercase' }}>{settings.establishment_name || settings.name}</Typography>
+            <Typography variant="subtitle2" align="center">{settings.slogan || "L'excellence au service de l'éducation"}</Typography>
             <Typography variant="body2" align="center" color="text.secondary">Contact: {settings.phone} | Email: {settings.email}</Typography>
             <Typography variant="caption" align="center" display="block" color="text.secondary">{settings.address}</Typography>
           </Grid>
@@ -269,6 +266,22 @@ export const FinancialSummaryPage: React.FC = () => {
 
       {/* Main Stats with specialized Print formatting */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Card sx={{ borderRadius: 3, height: '100%', borderColor: 'warning.main' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                <SchoolIcon sx={{ fontSize: 32, color: 'warning.main' }} />
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Montant Attendu</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 600, color: 'warning.main' }} className="text-warning-print">
+                    {formatAmount(globalTotals.totalExpected)} {settings.currency_symbol}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card sx={{ borderRadius: 3, height: '100%', borderColor: 'success.main' }}>
             <CardContent sx={{ p: 3 }}>
@@ -319,22 +332,6 @@ export const FinancialSummaryPage: React.FC = () => {
                   <Typography variant="body2" color="text.secondary">Solde</Typography>
                   <Typography variant="h5" sx={{ fontWeight: 600, color: globalTotals.balance >= 0 ? 'success.main' : 'error.main' }} className={globalTotals.balance >= 0 ? 'text-success-print' : 'text-error-print'}>
                     {formatAmount(globalTotals.balance)} {settings.currency_symbol}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <Card sx={{ borderRadius: 3, height: '100%', borderColor: 'warning.main' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                <SchoolIcon sx={{ fontSize: 32, color: 'warning.main' }} />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Montant Attendu</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 600 }} className="text-warning-print">
-                    {formatAmount(globalTotals.totalExpected)} {settings.currency_symbol}
                   </Typography>
                 </Box>
               </Box>

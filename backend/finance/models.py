@@ -1,6 +1,7 @@
 from django.db import models
+from tenants.models import TenantModel
 
-class TuitionTemplate(models.Model):
+class TuitionTemplate(TenantModel):
     CATEGORY_CHOICES = (
         ('general', 'Enseignement Général'),
         ('technique', 'Enseignement Technique'),
@@ -59,7 +60,7 @@ class TuitionTemplate(models.Model):
                 # Remove if amount is 0 (except for Inscription maybe)
                 TrancheConfig.objects.filter(school_class=cls, name=name).delete()
 
-class TrancheConfig(models.Model):
+class TrancheConfig(TenantModel):
     school_class = models.ForeignKey('school.Class', on_delete=models.CASCADE, related_name='tranches')
     name = models.CharField(max_length=100) # e.g. "Inscription", "Tranche 1"
     amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -68,7 +69,7 @@ class TrancheConfig(models.Model):
     def __str__(self):
         return f"{self.name} - {self.school_class} ({self.amount})"
 
-class Payment(models.Model):
+class Payment(TenantModel):
     MODE_CHOICES = (
         ('cash', 'Espèces'),
         ('check', 'Chèque'),
@@ -82,14 +83,17 @@ class Payment(models.Model):
     amount_expected = models.DecimalField(max_digits=12, decimal_places=2)
     date = models.DateField()
     mode = models.CharField(max_length=20, choices=MODE_CHOICES)
-    receipt_number = models.CharField(max_length=50, unique=True)
+    receipt_number = models.CharField(max_length=50)
+    
+    class Meta:
+        unique_together = ('receipt_number', 'establishment')
     recorded_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, limit_choices_to={'role__in': ['admin', 'comptable']})
     notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.receipt_number} - {self.student}: {self.amount_paid}"
 
-class Expense(models.Model):
+class Expense(TenantModel):
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     date = models.DateField()
@@ -99,3 +103,17 @@ class Expense(models.Model):
 
     def __str__(self):
         return f"{self.description} ({self.amount})"
+
+class TeacherPayment(TenantModel):
+    teacher = models.ForeignKey('school.Teacher', on_delete=models.CASCADE, related_name='payments')
+    base_salary = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_sanctions = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    date = models.DateField(auto_now_add=True)
+    month = models.IntegerField() # 1-12
+    year = models.IntegerField()
+    recorded_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True)
+    notes = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Paye {self.teacher} - {self.month}/{self.year} ({self.amount_paid})"

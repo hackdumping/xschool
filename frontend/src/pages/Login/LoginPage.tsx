@@ -48,7 +48,13 @@ export const LoginPage: React.FC = () => {
     try {
       await login(username, password, rememberMe);
       showNotification(`Bienvenue sur ${settings.name} !`, 'success');
-      navigate('/dashboard');
+      
+      // SuperAdmin redirection logic
+      if (username === 'admin') {
+        navigate('/superadmin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       const message = err.response?.data?.detail || err.response?.data?.error || 'Identifiants invalides ou erreur technique.';
       setError(message);

@@ -53,17 +53,17 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitl
                         {/* Header Section */}
                         <Box sx={{ textAlign: 'center', mb: 4 }}>
                             <Avatar
+                                src={settings.logo || '/logo.png'}
                                 sx={{
-                                    width: 72,
-                                    height: 72,
-                                    backgroundColor: 'primary.main',
+                                    width: 140,
+                                    height: 140,
+                                    backgroundColor: 'background.paper',
                                     mx: 'auto',
-                                    mb: 2,
+                                    mb: 3,
                                     boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                                    p: 0.5
                                 }}
-                            >
-                                {icon || <SchoolIcon sx={{ fontSize: 40 }} />}
-                            </Avatar>
+                            />
                             <Typography
                                 variant="h3"
                                 sx={{

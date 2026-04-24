@@ -26,6 +26,9 @@ import {
   Switch,
   Tabs,
   Tab,
+  useTheme,
+  useMediaQuery,
+  alpha,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,8 +42,26 @@ import {
 } from '@mui/icons-material';
 import { useEffect } from 'react';
 import { schoolService, financeService } from '@/services/api';
-import type { Class, Student, Payment } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSchool } from '@/contexts/SchoolContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { getCurrentAcademicYear } from '@/utils/academicYear';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  garderie: 'Garderie',
+  primaire: 'École Primaire',
+  general: 'Enseignement Général',
+  technique: 'Enseignement Technique',
+  formation: 'Centre de formation',
+};
+
+const LEVEL_MAPPING: Record<string, string[]> = {
+  garderie: ['Petite Section', 'Moyenne Section', 'Grande Section'],
+  primaire: ['SIL', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'],
+  general: ['6ème', '5ème', '4ème', '3ème', '2nde A', '2nde C', '1ère A', '1ère C', '1ère D', 'Tle A', 'Tle C', 'Tle D'],
+  technique: ['1ère Année', '2ème Année', '3ème Année', '4ème Année', '2nde', '1ère', 'Tle'],
+  formation: ['Cycle 1', 'Cycle 2', 'Cycle 3', 'Spécialisation'],
+};
 
 interface ClassCardProps {
   classData: Class;
@@ -63,7 +84,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, students, payments, on
   const classStudentIds = classStudents.map(s => s.id);
   const totalPaid = payments
     .filter(p => classStudentIds.includes(p.studentId))
-    .reduce((sum, p) => sum + Number(p.amountPaid), 0);
+    .reduce((sum: number, p: any) => sum + Number(p.amountPaid), 0);
   const recoveryRate = totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0;
 
   return (
@@ -74,7 +95,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, students, payments, on
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               {classData.name}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography component="div" variant="body2" color="text.secondary">
               Niveau: {classData.level} | {classData.categoryDisplay}
               {classData.isExam && <Chip label="Examen" size="small" color="secondary" sx={{ ml: 1, height: 16, fontSize: '0.65rem' }} />}
             </Typography>
@@ -151,23 +172,6 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, students, payments, on
           />
         </Box>
 
-        {/* Tranches */}
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Tranches de Paiement
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {classData.tranches?.map((tranche) => (
-              <Chip
-                key={tranche.id}
-                size="small"
-                label={`${tranche.name}: ${tranche.amount.toLocaleString()} XAF`}
-                variant="outlined"
-                sx={{ fontSize: '0.75rem' }}
-              />
-            ))}
-          </Box>
-        </Box>
       </CardContent>
 
       {/* Actions */}
@@ -193,7 +197,10 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, students, payments, on
 };
 
 export const ClassesPage: React.FC = () => {
+  const { user } = useAuth();
+  const { settings } = useSchool();
   const { showNotification } = useNotification();
+  const theme = useTheme();
   const [classesList, setClassesList] = useState<Class[]>([]);
   const [studentsList, setStudentsList] = useState<Student[]>([]);
   const [paymentsList, setPaymentsList] = useState<Payment[]>([]);
@@ -201,19 +208,30 @@ export const ClassesPage: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'add'>('view');
-  const [categoryTab, setCategoryTab] = useState('all');
+  
+  // Dynamic tabs based on current school settings (not static user profile)
+  const allowedTypes = settings.selected_types || ['general'];
+  const [categoryTab, setCategoryTab] = useState(allowedTypes[0] || 'all');
   const [schoolYears, setSchoolYears] = useState<any[]>([]);
 
   const filteredClasses = classesList.filter(c => 
     categoryTab === 'all' || c.category === categoryTab
   );
+  
+  // Calculate specific stats based on active tab
+  const activeClassIDs = filteredClasses.map(c => c.id);
+  const filteredStudentsCount = studentsList.filter(s => activeClassIDs.includes(s.classId)).length;
+  const totalCapacity = filteredClasses.reduce((acc, c) => acc + c.maxSize, 0);
+  const totalOccupancyRate = totalCapacity > 0 ? (filteredStudentsCount / totalCapacity) * 100 : 0;
+  const availablePlaces = totalCapacity - filteredStudentsCount;
+
   const [tuitionTemplates, setTuitionTemplates] = useState<any[]>([]);
+
   const [formData, setFormData] = useState({
-    name: '',
     level: '',
     maxSize: 30,
-    schoolYear: '' as string | number,
-    category: 'general' as 'general' | 'technique',
+    schoolYear: getCurrentAcademicYear(),
+    category: allowedTypes[0] as any,
     tuitionTemplate: '' as string | number,
     isExam: false,
   });
@@ -234,10 +252,7 @@ export const ClassesPage: React.FC = () => {
         setTuitionTemplates(templatesRes.data);
         setSchoolYears(yearsRes.data);
         
-        // Default school year for new classes
-        if (yearsRes.data.length > 0) {
-          setFormData(prev => ({ ...prev, schoolYear: yearsRes.data[0].id }));
-        }
+        setFormData(prev => ({ ...prev, schoolYear: getCurrentAcademicYear() }));
       } catch (error: any) {
         console.error('Failed to fetch classes data', error);
         const msg = error.response?.data?.detail || error.message || 'Erreur inconnue';
@@ -258,7 +273,6 @@ export const ClassesPage: React.FC = () => {
   const handleEdit = (classData: Class) => {
     setSelectedClass(classData);
     setFormData({
-      name: classData.name,
       level: classData.level,
       maxSize: classData.maxSize,
       schoolYear: classData.schoolYear,
@@ -285,11 +299,10 @@ export const ClassesPage: React.FC = () => {
   const handleAddClass = () => {
     setSelectedClass(null);
     setFormData({
-      name: '',
       level: '',
       maxSize: 30,
-      schoolYear: schoolYears.length > 0 ? schoolYears[0].id : '',
-      category: 'general',
+      schoolYear: getCurrentAcademicYear(),
+      category: categoryTab !== 'all' ? categoryTab as any : allowedTypes[0] as any,
       tuitionTemplate: '',
       isExam: false,
     });
@@ -299,11 +312,23 @@ export const ClassesPage: React.FC = () => {
 
   const handleSaveClass = async () => {
     try {
+      // Resolve school year ID if it's a string (happens on newly initialized forms)
+      let resolvedYearId = formData.schoolYear;
+      if (typeof formData.schoolYear === 'string') {
+        const yearObj = schoolYears.find(y => y.year === formData.schoolYear);
+        if (yearObj) {
+          resolvedYearId = yearObj.id;
+        } else {
+          // If the year doesn't exist in DB, we should probably warn or let it fail naturally
+          console.warn(`Year ${formData.schoolYear} not found in database objects.`);
+        }
+      }
+
       const payload = {
-        name: formData.name,
+        name: formData.level, // Sync name with level for consistency
         level: formData.level,
         maxSize: formData.maxSize,
-        schoolYear: formData.schoolYear,
+        schoolYear: resolvedYearId,
         category: formData.category,
         tuitionTemplate: formData.tuitionTemplate || null,
         isExam: formData.isExam,
@@ -311,15 +336,34 @@ export const ClassesPage: React.FC = () => {
       
       if (dialogMode === 'edit' && selectedClass) {
         await schoolService.updateClass(selectedClass.id, payload);
-        showNotification('Classe mise à jour', 'success');
+        showNotification('Classe mise à jour avec succès', 'success');
       } else if (dialogMode === 'add') {
         await schoolService.createClass(payload);
-        showNotification('Classe créée', 'success');
+        showNotification('Classe créée avec succès', 'success');
       }
       setOpenDialog(false);
       refreshData();
-    } catch (error) {
-      showNotification('Erreur lors de l\'enregistrement', 'error');
+    } catch (error: any) {
+      console.error('Save class error:', error);
+      const backendError = error.response?.data;
+      let errorMessage = 'Erreur lors de l\'enregistrement';
+      
+      if (backendError) {
+        if (typeof backendError === 'object') {
+          // Flatten standard DRF error object
+          errorMessage = Object.entries(backendError)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+            .join(' | ');
+          
+          if (backendError.non_field_errors) {
+            errorMessage = backendError.non_field_errors.join(', ');
+          }
+        } else if (typeof backendError === 'string') {
+          errorMessage = backendError;
+        }
+      }
+      
+      showNotification(errorMessage, 'error');
     }
   };
 
@@ -369,7 +413,7 @@ export const ClassesPage: React.FC = () => {
             Gestion des Classes
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            {classesList.length} classes pour l'année scolaire 2024-2025
+            {classesList.length} classes pour l'année scolaire {getCurrentAcademicYear()}
           </Typography>
         </Box>
         <Button
@@ -392,9 +436,10 @@ export const ClassesPage: React.FC = () => {
           variant="scrollable"
           allowScrollButtonsMobile
         >
-          <Tab label="Toutes les classes" value="all" />
-          <Tab label="Enseignement Général" value="general" />
-          <Tab label="Enseignement Technique" value="technique" />
+          {allowedTypes.length > 1 && <Tab label="Toutes les classes" value="all" />}
+          {allowedTypes.map(type => (
+            <Tab key={type} label={CATEGORY_LABELS[type] || type} value={type} />
+          ))}
         </Tabs>
       </Box>
 
@@ -405,7 +450,7 @@ export const ClassesPage: React.FC = () => {
             <CardContent sx={{ p: 3, textAlign: 'center' }}>
               <SchoolIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                {classesList.length}
+                {filteredClasses.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Classes
@@ -418,7 +463,7 @@ export const ClassesPage: React.FC = () => {
             <CardContent sx={{ p: 3, textAlign: 'center' }}>
               <PeopleIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                {studentsList.length}
+                {filteredStudentsCount}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Élèves Inscrits
@@ -431,7 +476,7 @@ export const ClassesPage: React.FC = () => {
             <CardContent sx={{ p: 3, textAlign: 'center' }}>
               <TrendingUpIcon sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                72.5%
+                {totalOccupancyRate.toFixed(1)}%
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Taux de Remplissage
@@ -444,7 +489,7 @@ export const ClassesPage: React.FC = () => {
             <CardContent sx={{ p: 3, textAlign: 'center' }}>
               <AssignmentIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 600, color: 'warning.main' }}>
-                {classesList.reduce((acc, c) => acc + c.maxSize, 0) - studentsList.length}
+                {availablePlaces}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Places Disponibles
@@ -498,13 +543,6 @@ export const ClassesPage: React.FC = () => {
                   </Typography>
 
                   <Typography variant="subtitle2" color="text.secondary">
-                    Niveau
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedClass.level}
-                  </Typography>
-
-                  <Typography variant="subtitle2" color="text.secondary">
                     Capacité Maximale
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
@@ -548,60 +586,43 @@ export const ClassesPage: React.FC = () => {
             <Box sx={{ mt: 2 }}>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Nom de la classe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
-                    <InputLabel>Niveau</InputLabel>
+                    <InputLabel>Nom de la classe</InputLabel>
                     <Select
                       value={formData.level}
-                      label="Niveau"
-                      onChange={(e: any) => setFormData({ ...formData, level: e.target.value })}
+                      label="Nom de la classe"
+                      onChange={(e: any) => {
+                        const newLevel = e.target.value;
+                        // Auto-match tuition template
+                        const matchingTemplate = tuitionTemplates.find(t => t.name === newLevel && t.category === formData.category);
+                        setFormData({ 
+                          ...formData, 
+                          level: newLevel,
+                          tuitionTemplate: matchingTemplate ? matchingTemplate.id : formData.tuitionTemplate
+                        });
+                      }}
                     >
-                      {formData.category === 'general' ? (
-                        [
-                          <MenuItem key="6" value="6ème">6ème</MenuItem>,
-                          <MenuItem key="5" value="5ème">5ème</MenuItem>,
-                          <MenuItem key="4" value="4ème">4ème</MenuItem>,
-                          <MenuItem key="3" value="3ème">3ème</MenuItem>,
-                          <MenuItem key="2A" value="2nde A">2nde A</MenuItem>,
-                          <MenuItem key="2C" value="2nde C">2nde C</MenuItem>,
-                          <MenuItem key="1A" value="1ère A">1ère A</MenuItem>,
-                          <MenuItem key="1C" value="1ère C">1ère C</MenuItem>,
-                          <MenuItem key="1D" value="1ère D">1ère D</MenuItem>,
-                          <MenuItem key="TA" value="Tle A">Tle A</MenuItem>,
-                          <MenuItem key="TC" value="Tle C">Tle C</MenuItem>,
-                          <MenuItem key="TD" value="Tle D">Tle D</MenuItem>,
-                        ]
-                      ) : (
-                        [
-                          <MenuItem key="1T" value="1ère Année">1ère Année</MenuItem>,
-                          <MenuItem key="2T" value="2ème Année">2ème Année</MenuItem>,
-                          <MenuItem key="3T" value="3ème Année">3ème Année</MenuItem>,
-                          <MenuItem key="4T" value="4ème Année">4ème Année</MenuItem>,
-                          <MenuItem key="2T" value="2nde">2nde</MenuItem>,
-                          <MenuItem key="1T" value="1ère">1ère</MenuItem>,
-                          <MenuItem key="TT" value="Tle">Tle</MenuItem>,
-                        ]
+                      {LEVEL_MAPPING[formData.category]?.map(level => (
+                        <MenuItem key={level} value={level}>{level}</MenuItem>
+                      ))}
+                      {/* Safety: if current value is not in standard list, add it to avoid Select crash */}
+                      {formData.level && !LEVEL_MAPPING[formData.category]?.includes(formData.level) && (
+                        <MenuItem value={formData.level}>{formData.level} (Actuel)</MenuItem>
                       )}
                     </Select>
                   </FormControl>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
-                    <InputLabel>Catégorie</InputLabel>
+                    <InputLabel>Cycle / Catégorie</InputLabel>
                     <Select
                       value={formData.category}
-                      label="Catégorie"
+                      label="Cycle / Catégorie"
                       onChange={(e: any) => setFormData({ ...formData, category: e.target.value as any, level: '' })}
                     >
-                      <MenuItem value="general">Enseignement Général</MenuItem>
-                      <MenuItem value="technique">Enseignement Technique</MenuItem>
+                      {allowedTypes.map(type => (
+                        <MenuItem key={type} value={type}>{CATEGORY_LABELS[type] || type}</MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -643,18 +664,14 @@ export const ClassesPage: React.FC = () => {
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Année Scolaire</InputLabel>
-                    <Select
-                      value={formData.schoolYear}
-                      label="Année Scolaire"
-                      onChange={(e: any) => setFormData({ ...formData, schoolYear: e.target.value })}
-                    >
-                      {schoolYears.map(y => (
-                        <MenuItem key={y.id} value={y.id}>{y.year}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Box sx={{ p: 2, bgcolor: alpha(theme.palette.info.main, 0.1), borderRadius: 2, border: '1px solid', borderColor: 'info.light' }}>
+                     <Typography variant="subtitle2" color="info.main" fontWeight={700}>
+                       Année Scolaire
+                     </Typography>
+                     <Typography variant="h6" color="info.main">
+                       {formData.schoolYear}
+                     </Typography>
+                  </Box>
                 </Grid>
               </Grid>
             </Box>

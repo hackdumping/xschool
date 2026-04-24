@@ -8,3 +8,5 @@ psycopg2-binary
 whitenoise
 python-dotenv
 gunicorn
+cloudinary==1.44.2
+django-cloudinary-storage==0.3.0

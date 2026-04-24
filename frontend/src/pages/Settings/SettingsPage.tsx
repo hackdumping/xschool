@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Box,
   Typography,
@@ -30,6 +32,7 @@ import {
   Sms as SmsIcon,
   Delete as DeleteIcon,
   Warning as WarningIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useSchool } from '@/contexts/SchoolContext';
@@ -60,6 +63,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
     sx={{
       py: { xs: 2, md: 4 },
       animation: value === index ? 'slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+      display: value === index ? 'block' : 'none', // Improved visibility handling
     }}
   >
     {value === index && children}
@@ -68,11 +72,26 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 
 export const SettingsPage: React.FC = () => {
   const theme = useTheme();
+  const { user, logout, updateUser } = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { showNotification } = useNotification();
   const { settings, updateSettings } = useSchool();
   const [activeTab, setActiveTab] = useState(0);
+  const navigate = useNavigate();
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync user profile to ensure establishment_info.owner is present
+  React.useEffect(() => {
+    const syncProfile = async () => {
+      try {
+        const freshUser = await authService.getCurrentUser();
+        updateUser(freshUser);
+      } catch (e) {
+        console.error("Failed to sync profile", e);
+      }
+    };
+    syncProfile();
+  }, []);
 
   const handleTabChange = (v: number) => {
     setActiveTab(v);
@@ -86,12 +105,28 @@ export const SettingsPage: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
+  const isOwner = React.useMemo(() => {
+    if (!user) return false;
+    // SuperAdmins get full access everywhere for maintenance
+    if (user.is_superuser || user.username === 'admin') return true;
+    
+    if (!user.establishment_info) return false;
+    return String(user.id) === String(user.establishment_info.owner);
+  }, [user]);
+
   const [deleting, setDeleting] = useState(false);
   const [tuitionTemplates, setTuitionTemplates] = useState<TuitionTemplate[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<TuitionTemplate | null>(null);
 
+  // Account deletion states
+  const [openDeleteEstabDialog, setOpenDeleteEstabDialog] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(1);
+  const [confirmName, setConfirmName] = useState('');
+
   const [formData, setFormData] = useState({
     name: settings.name,
+    establishment_name: settings.establishment_name || settings.name,
+    selected_types: settings.selected_types || [],
     email: settings.email,
     phone: settings.phone,
     address: settings.address,
@@ -117,6 +152,14 @@ export const SettingsPage: React.FC = () => {
     tranche_2_deadline: settings.tranche_2_deadline || '',
     tranche_3_deadline: settings.tranche_3_deadline || '',
     exam_fee_amount: settings.exam_fee_amount || 0,
+    slogan: settings.slogan || '',
+    english_name: settings.english_name || '',
+    city: settings.city || '',
+    country: settings.country || '',
+    director_title: settings.director_title || '',
+    postal_code: settings.postal_code || '',
+    certificate_reference: settings.certificate_reference || '',
+    article_text: settings.article_text || '',
   });
 
   const [staffData, setStaffData] = useState({
@@ -124,15 +167,15 @@ export const SettingsPage: React.FC = () => {
     email: '',
     first_name: '',
     last_name: '',
-    role: 'teacher',
-    password: 'password123',
-    password_confirm: 'password123',
+    password: '',
   });
 
   // Update local form data when global settings load
   React.useEffect(() => {
     setFormData({
       name: settings.name,
+      establishment_name: settings.establishment_name || settings.name,
+      selected_types: settings.selected_types || [],
       email: settings.email,
       phone: settings.phone,
       address: settings.address,
@@ -158,6 +201,14 @@ export const SettingsPage: React.FC = () => {
       tranche_2_deadline: settings.tranche_2_deadline || '',
       tranche_3_deadline: settings.tranche_3_deadline || '',
       exam_fee_amount: settings.exam_fee_amount || 0,
+      slogan: settings.slogan || '',
+      english_name: settings.english_name || '',
+      city: settings.city || '',
+      country: settings.country || '',
+      director_title: settings.director_title || '',
+      postal_code: settings.postal_code || '',
+      certificate_reference: settings.certificate_reference || '',
+      article_text: settings.article_text || '',
     });
   }, [settings]);
 
@@ -221,7 +272,10 @@ export const SettingsPage: React.FC = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await authService.createStaff(staffData);
+      await authService.createStaff({
+        ...staffData,
+        role: 'professeur' // Default role as requested
+      });
       showNotification('Membre ajouté avec succès', 'success');
       setOpenAddDialog(false);
       fetchUsers();
@@ -230,9 +284,7 @@ export const SettingsPage: React.FC = () => {
         email: '',
         first_name: '',
         last_name: '',
-        role: 'teacher',
-        password: 'password123',
-        password_confirm: 'password123',
+        password: '',
       });
     } catch (error: any) {
       const backendErrors = error.response?.data;
@@ -297,6 +349,45 @@ export const SettingsPage: React.FC = () => {
       setSubmitting(false);
     }
   };
+  const handleDeleteEstablishment = async () => {
+    if (!user) return;
+    
+    // SAFETY: Never allow deleting the 'admin' account from the UI
+    if (user.username === 'admin') {
+      const isImpersonating = !!localStorage.getItem('selectedTenantId');
+      if (!isImpersonating) {
+        showNotification("Le compte SuperAdmin racine ne peut pas être supprimé.", "error");
+        setOpenDeleteEstabDialog(false);
+        return;
+      }
+    }
+
+    setDeleting(true);
+    try {
+      // If we're impersonating, we want to delete the OWNER of the school being watched, not the SuperAdmin
+      // settings.owner_id was added to the API/Context to facilitate this
+      const targetUserId = settings.owner_id || user.id;
+
+      await authService.deleteUser(targetUserId);
+      showNotification('L\'établissement et toutes ses données ont été supprimés avec succès.', 'success');
+      
+      // If a SuperAdmin deleted someone else's school, they shouldn't logout
+      if (user.is_superuser && String(targetUserId) !== String(user.id)) {
+        localStorage.removeItem('selectedTenantId');
+        navigate('/superadmin/dashboard');
+        window.location.reload(); // Refresh to clear tenant context
+      } else {
+        logout();
+        navigate('/register');
+      }
+    } catch (error: any) {
+      console.error("Deletion failed:", error);
+      showNotification(error.response?.data?.error || 'Erreur lors de la suppression de l\'établissement', 'error');
+    } finally {
+      setDeleting(false);
+      setOpenDeleteEstabDialog(false);
+    }
+  };
 
   const glassStyle = {
     background: alpha(theme.palette.background.paper, 0.6),
@@ -347,7 +438,7 @@ export const SettingsPage: React.FC = () => {
           Configuration <Box component="span" sx={{ color: 'primary.main' }}>Globale</Box>
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 400, maxWidth: 600, mx: 'auto', fontSize: { xs: '0.875rem', md: '1.125rem' } }}>
-          Gérez votre établissement XSCHOOL en toute simplicité sur tous vos appareils.
+          Gérez votre établissement en toute simplicité sur tous vos appareils.
         </Typography>
       </Box>
 
@@ -388,6 +479,7 @@ export const SettingsPage: React.FC = () => {
           <Tab icon={<PaymentIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Finance" iconPosition="start" title="Finance" sx={tabStyle} />
           <Tab icon={<SchoolIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Tarifs" iconPosition="start" title="Tarifs & Échéances" sx={tabStyle} />
           <Tab icon={<SecurityIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Sécurité" iconPosition="start" title="Sécurité" sx={tabStyle} />
+          {isOwner && <Tab icon={<WarningIcon sx={{ fontSize: { xs: 16, md: 20 } }} />} label="Dangers" iconPosition="start" title="Zone de danger" sx={tabStyle} sx={{ ...tabStyle, '&.Mui-selected': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) } }} />}
         </Tabs>
       </Paper>
 
@@ -403,15 +495,134 @@ export const SettingsPage: React.FC = () => {
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12 }}>
+                      <TextField
+                        fullWidth
+                        label="Nom de l'établissement"
+                        value={formData.establishment_name}
+                        onChange={(e) => setFormData({ ...formData, establishment_name: e.target.value, name: e.target.value })}
+                        variant="filled"
+                        InputProps={{ sx: { borderRadius: 2 } }}
+                      />
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Nom de l'école"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      label="Nom de l'établissement (Anglais)"
+                      value={formData.english_name}
+                      onChange={(e) => setFormData({ ...formData, english_name: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Slogan / Devise"
+                      value={formData.slogan}
+                      onChange={(e) => setFormData({ ...formData, slogan: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Ville"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Pays"
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Boîte Postale (B.P.)"
+                      value={formData.postal_code}
+                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Titre du Signataire (ex: Le Proviseur)"
+                      value={formData.director_title}
+                      onChange={(e) => setFormData({ ...formData, director_title: e.target.value })}
+                      helperText="Apparaîtra sur les certificats et relevés"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Référence Certificat (Format)"
+                      value={formData.certificate_reference}
+                      onChange={(e) => setFormData({ ...formData, certificate_reference: e.target.value })}
+                      helperText="Ex: MY_SCHOOL/{ANNEE}/CERT/"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Article / Décret (Header PDF)"
+                      value={formData.article_text}
+                      onChange={(e) => setFormData({ ...formData, article_text: e.target.value })}
+                      helperText="Saisissez l'article ou le décret qui apparaîtra dans l'en-tête de vos PDF."
                       variant="filled"
                       InputProps={{ sx: { borderRadius: 2 } }}
                     />
                   </Grid>
+                  
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="subtitle2" fontWeight={800} sx={{ mt: 2, mb: 1.5 }}>Cycles d'Enseignement Actifs</Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {[
+                        { id: 'garderie', label: 'Garderie' },
+                        { id: 'primaire', label: 'École Primaire' },
+                        { id: 'general', label: 'Enseignement Général' },
+                        { id: 'technique', 'label': 'Enseignement Technique' },
+                        { id: 'formation', 'label': 'Centre de formation' },
+                      ].map((type) => (
+                        <Box
+                          key={type.id}
+                          onClick={() => {
+                            const newTypes = formData.selected_types.includes(type.id)
+                              ? formData.selected_types.filter((t: string) => t !== type.id)
+                              : [...formData.selected_types, type.id];
+                            setFormData({ ...formData, selected_types: newTypes });
+                          }}
+                          sx={{
+                            px: 2,
+                            py: 1,
+                            borderRadius: 3,
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            transition: '0.2s',
+                            border: '1px solid',
+                            borderColor: formData.selected_types.includes(type.id) ? 'primary.main' : alpha(theme.palette.divider, 0.1),
+                            bgcolor: formData.selected_types.includes(type.id) ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                            color: formData.selected_types.includes(type.id) ? 'primary.main' : 'text.secondary',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              bgcolor: alpha(theme.palette.primary.main, 0.05)
+                            }
+                          }}
+                        >
+                          {type.label}
+                        </Box>
+                      ))}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Modifiez les cycles pour adapter dynamiquement vos menus et graphiques.
+                    </Typography>
+                  </Grid>
+
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
@@ -461,14 +672,14 @@ export const SettingsPage: React.FC = () => {
                   onChange={handleLogoChange}
                 />
                 <Avatar 
-                  src={settings.logo ? (settings.logo.startsWith('http') ? settings.logo : `${window.location.origin}${settings.logo}`) : undefined}
-                  sx={{ width: 140, height: 140, mb: 3, mx: 'auto', border: `4px solid ${alpha(theme.palette.primary.main, 0.1)}`, bgcolor: 'background.default' }}
+                  src={settings.logo ? (settings.logo.startsWith('http') ? settings.logo : `http://localhost:8000${settings.logo}`) : undefined}
+                  sx={{ width: 140, height: 140, mb: 3, mx: 'auto', border: `4px solid ${alpha(theme.palette.primary.main, 0.1)}`, bgcolor: 'background.default', borderRadius: 4 }}
                 >
                   {!settings.logo && <SchoolIcon sx={{ fontSize: 60, color: 'primary.main' }} />}
                 </Avatar>
                 <Typography variant="subtitle1" fontWeight={700} gutterBottom>Logo de l'école</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Utilisez une image carrée de haute résolution pour un meilleur rendu sur les reçus.
+                  Utilisez une image carrée de haute résolution pour un meilleur rendu sur les reçus et bulletins.
                 </Typography>
                 <Button 
                   variant="outlined" 
@@ -476,7 +687,7 @@ export const SettingsPage: React.FC = () => {
                   sx={{ borderRadius: 2, px: 4 }}
                   onClick={() => logoInputRef.current?.click()}
                 >
-                  {submitting ? <Loader size={20} /> : "Changer le logo"}
+                  {submitting ? <Loader size={20} /> : (settings.logo ? "Changer le logo" : "Ajouter un logo")}
                 </Button>
               </Paper>
             </Grid>
@@ -485,73 +696,98 @@ export const SettingsPage: React.FC = () => {
 
         {/* TAB 1: PERSONNEL */}
         <TabPanel value={activeTab} index={1}>
-          <Paper sx={glassStyle}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, mb: 3 }}>
-              <Typography variant="h6" fontWeight={800}>Équipe Administrative & Enseignante</Typography>
-              <Button
-                fullWidth={isMobile}
-                variant="contained"
-                startIcon={<PersonIcon />}
-                size="small"
-                onClick={() => setOpenAddDialog(true)}
-              >
-                Ajouter un membre
-              </Button>
+          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="h5" fontWeight={800} gutterBottom>Gestion de l'Équipe</Typography>
+              <Typography variant="body2" color="text.secondary">Gérez les collaborateurs et leurs droits d'accès.</Typography>
             </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setOpenAddDialog(true)}
+              sx={{ borderRadius: 3, fontWeight: 700 }}
+            >
+              Ajouter
+            </Button>
+          </Box>
 
-            {loadingUsers ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <Loader size={40} />
-              </Box>
-            ) : (
-              <Grid container spacing={2}>
-                {users.map((user) => (
-                  <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={user.id}>
-                    <Paper variant="outlined" sx={{ borderRadius: 3, p: 2, display: 'flex', alignItems: 'center', border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, position: 'relative' }}>
-                      <ListItemAvatar sx={{ minWidth: 48 }}>
-                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', fontWeight: 800, width: 36, height: 36, fontSize: '0.875rem' }}>
-                          {user.firstName ? user.firstName[0] : (user.username ? user.username[0].toUpperCase() : '?')}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                        <Typography fontWeight={700} noWrap sx={{ fontSize: '0.9rem' }}>
-                          {user.firstName || ''} {user.lastName || user.username}
-                        </Typography>
-                        <Typography variant="caption" noWrap display="block" color="text.secondary">{user.email || "Pas d'email"}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              size="small"
-                              checked={user.role === 'admin'}
-                              onChange={() => handleToggleAdmin(user)}
-                              disabled={user.username === 'admin'} // Protect main admin
-                            />
-                          }
-                          label={<Typography variant="caption" fontWeight={700}>Admin</Typography>}
-                          labelPlacement="start"
-                          sx={{ m: 0 }}
-                        />
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => {
-                            setUserToDelete(user);
+          {loadingUsers ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <Loader />
+            </Box>
+          ) : (
+            <Grid container spacing={2}>
+              {users.map((staff) => (
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={staff.id}>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      borderRadius: 3,
+                      p: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                      position: 'relative',
+                    }}
+                  >
+                    <ListItemAvatar sx={{ minWidth: 48 }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          color: 'primary.main',
+                          fontWeight: 800,
+                          width: 36,
+                          height: 36,
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        {staff.first_name ? staff.first_name[0] : (staff.username ? staff.username[0].toUpperCase() : '?')}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography fontWeight={700} noWrap sx={{ fontSize: '0.9rem' }}>
+                        {staff.first_name || ''} {staff.last_name || staff.username}
+                      </Typography>
+                      <Typography variant="caption" noWrap display="block" color="text.secondary">
+                        {staff.email || "Pas d'email"}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            size="small"
+                            checked={staff.role === 'admin'}
+                            onChange={() => handleToggleAdmin(staff)}
+                            disabled={staff.username === 'admin'}
+                          />
+                        }
+                        label={<Typography variant="caption" fontWeight={700}>Admin</Typography>}
+                        labelPlacement="start"
+                        sx={{ m: 0 }}
+                      />
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => {
+                          if (staff.id === user?.id) {
+                            showNotification("Vous ne pouvez pas supprimer votre propre compte ici. Allez dans l'onglet Dangers.", "warning");
+                          } else {
+                            setUserToDelete(staff);
                             setDeleteConfirmOpen(true);
-                          }}
-                          sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
-                          disabled={user.username === 'admin'} // Prevent deleting main admin
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            )}
-          </Paper>
+                          }
+                        }}
+                        sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
+                        disabled={staff.username === 'admin'}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </TabPanel>
 
         {/* TAB 2: ALERTES */}
@@ -970,6 +1206,51 @@ export const SettingsPage: React.FC = () => {
             </Grid>
           </Grid>
         </TabPanel>
+        {/* TAB 7: DANGERS (OWNER ONLY) */}
+        {isOwner && (
+          <TabPanel value={activeTab} index={7}>
+            <Paper sx={{ ...glassStyle, border: `2px solid ${alpha(theme.palette.error.main, 0.2)}`, bgcolor: alpha(theme.palette.error.main, 0.02) }}>
+              <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'error.main', width: 48, height: 48 }}>
+                  <WarningIcon sx={{ fontSize: 32 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h5" fontWeight={900} color="error.main">Zone de Danger</Typography>
+                  <Typography variant="body2" color="text.secondary">Actions irréversibles concernant l'ensemble de votre établissement.</Typography>
+                </Box>
+              </Box>
+
+              <Card variant="outlined" sx={{ borderColor: alpha(theme.palette.error.main, 0.3), borderRadius: 4, bgcolor: 'transparent' }}>
+                <CardContent sx={{ p: 4 }}>
+                  <Typography variant="h6" fontWeight={800} gutterBottom>Suppression de l'Établissement</Typography>
+                  <Typography variant="body2" sx={{ mb: 3, opacity: 0.8 }}>
+                    La suppression de votre compte entrainera la suppression immédiate et définitive de :
+                  </Typography>
+                  <Box component="ul" sx={{ mb: 4, color: 'text.secondary', pl: 2 }}>
+                    <li>Toutes les données élèves et classes</li>
+                    <li>L'historique complet des paiements et finances</li>
+                    <li>Les comptes de tous vos collaborateurs</li>
+                    <li>Toutes vos configurations personnalisées</li>
+                  </Box>
+                  
+                  <Button 
+                    variant="contained" 
+                    color="error" 
+                    size="large"
+                    onClick={() => {
+                      setDeleteStep(1);
+                      setConfirmName('');
+                      setOpenDeleteEstabDialog(true);
+                    }}
+                    sx={{ borderRadius: 3, px: 6, fontWeight: 900, py: 1.5, boxShadow: `0 8px 24px ${alpha(theme.palette.error.main, 0.3)}` }}
+                  >
+                    Supprimer l'Établissement Définitivement
+                  </Button>
+                </CardContent>
+              </Card>
+            </Paper>
+          </TabPanel>
+        )}
       </Box>
 
       {/* Add Staff Dialog */}
@@ -1147,6 +1428,75 @@ export const SettingsPage: React.FC = () => {
             sx={{ borderRadius: 2, px: 3 }}
           >
             {deleting ? <Loader size={24} /> : 'Supprimer définitivement'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Delete Establishment Multi-Step Dialog */}
+      <Dialog
+        open={openDeleteEstabDialog}
+        onClose={() => !deleting && setOpenDeleteEstabDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4, p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 900, color: 'error.main', textAlign: 'center', pt: 3 }}>
+          <WarningIcon sx={{ fontSize: 48, mb: 1, display: 'block', mx: 'auto' }} />
+          Action Haute Sécurité
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ textAlign: 'center', py: 2 }}>
+            {deleteStep === 1 ? (
+              <>
+                <Typography variant="h6" fontWeight={800} gutterBottom>Êtes-vous absolument sûr ?</Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                  Cette action ne peut pas être annulée. En supprimant votre compte, vous détruisez l'intégralité de l'infrastructure numérique de votre école.
+                </Typography>
+                <Button 
+                  variant="outlined" 
+                  color="error" 
+                  fullWidth 
+                  size="large"
+                  onClick={() => setDeleteStep(2)}
+                  sx={{ borderRadius: 3, fontWeight: 800 }}
+                >
+                  Je comprends, passer à la vérification
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                  Veuillez saisir le nom de votre établissement pour confirmer :
+                </Typography>
+                <Typography variant="body2" color="primary.main" fontWeight={900} sx={{ mb: 2, fontSize: '1.1rem' }}>
+                  {settings.name}
+                </Typography>
+                <TextField
+                  fullWidth
+                  placeholder="Tapez le nom exactement ici"
+                  value={confirmName}
+                  onChange={(e) => setConfirmName(e.target.value)}
+                  variant="outlined"
+                  autoFocus
+                  sx={{ mb: 3 }}
+                />
+                <Button 
+                  variant="contained" 
+                  color="error" 
+                  fullWidth 
+                  size="large"
+                  disabled={confirmName !== settings.name || deleting}
+                  onClick={handleDeleteEstablishment}
+                  sx={{ borderRadius: 3, fontWeight: 900 }}
+                >
+                  {deleting ? <Loader size={24} color="inherit" /> : "CONFIRMER LA DESTRUCTION DU COMPTE"}
+                </Button>
+              </>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+          <Button onClick={() => setOpenDeleteEstabDialog(false)} color="inherit" disabled={deleting}>
+            Annuler
           </Button>
         </DialogActions>
       </Dialog>

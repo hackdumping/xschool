@@ -3,6 +3,7 @@ import { schoolService } from '@/services/api';
 
 interface SchoolSettings {
     name: string;
+    establishment_name?: string;
     email: string;
     phone: string;
     address: string;
@@ -30,6 +31,8 @@ interface SchoolSettings {
     require_strong_password: boolean;
     maintenance_mode: boolean;
     two_factor_enforcement: boolean;
+    selected_types: string[];
+    owner_id?: number | null;
 }
 
 interface SchoolContextType {
@@ -40,8 +43,8 @@ interface SchoolContextType {
 }
 
 const defaultSettings: SchoolSettings = {
-    name: 'XSCHOOL Management',
-    email: 'contact@xschool.cm',
+    name: 'XSCHOOL',
+    email: 'contact@ecole.cm',
     phone: '+237 699 00 11 22',
     address: 'Bastos, Yaoundé, Cameroun',
     website: 'https://vanda-studio.tech',
@@ -68,6 +71,8 @@ const defaultSettings: SchoolSettings = {
     require_strong_password: true,
     maintenance_mode: false,
     two_factor_enforcement: false,
+    selected_types: [],
+    owner_id: null,
 };
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -79,7 +84,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const refreshSettings = useCallback(async () => {
         try {
             const response = await schoolService.getSettings();
-            setSettings(response.data);
+            const data = response.data;
+            if (data.logo && !data.logo.startsWith('http')) {
+                // Use the same hostname as the current page, but point to backend port (8000)
+                const backendHost = window.location.hostname;
+                data.logo = `http://${backendHost}:8000${data.logo}`;
+            }
+            setSettings(data);
         } catch (error) {
             console.error('Failed to fetch school settings', error);
         } finally {
@@ -90,7 +101,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const updateSettings = async (data: Partial<SchoolSettings> | FormData) => {
         try {
             const response = await schoolService.updateSettings(data);
-            setSettings(response.data);
+            const resData = response.data;
+            if (resData.logo && !resData.logo.startsWith('http')) {
+                const backendHost = window.location.hostname;
+                resData.logo = `http://${backendHost}:8000${resData.logo}`;
+            }
+            setSettings(resData);
         } catch (error) {
             console.error('Failed to update school settings', error);
             throw error;

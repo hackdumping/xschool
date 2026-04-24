@@ -40,6 +40,7 @@ import { schoolService } from '@/services/api';
 import type { Class, Student, Subject, Period, Grade } from '@/types';
 import { LinearProgress } from '@mui/material';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useSchool } from '@/contexts/SchoolContext';
 import * as XLSX from 'xlsx';
 
 interface GradeEntry {
@@ -53,6 +54,7 @@ export const GradesPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { showNotification } = useNotification();
+  const { settings: schoolSettings } = useSchool();
   const [classesList, setClassesList] = useState<Class[]>([]);
   const [periodsList, setPeriodsList] = useState<Period[]>([]);
   const [subjectsList, setSubjectsList] = useState<Subject[]>([]);
@@ -543,7 +545,7 @@ export const GradesPage: React.FC = () => {
                 {/* Header */}
                 <Box sx={{ textAlign: 'center', mb: 4 }}>
                   <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                    XSCHOOL
+                    {(schoolSettings.establishment_name || schoolSettings.name || 'SESSION SCOLAIRE').toUpperCase()}
                   </Typography>
                   <Typography variant="subtitle1" color="text.secondary">
                     Bulletin de Notes - {periodsList.find(p => p.id === selectedPeriod)?.name}

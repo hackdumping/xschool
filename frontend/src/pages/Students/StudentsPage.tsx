@@ -27,6 +27,7 @@ import {
   useTheme,
   useMediaQuery,
   alpha,
+  Paper,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,18 +40,117 @@ import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
   TrendingUp as TrendingUpIcon,
+  CloudUpload as CloudUploadIcon,
+  Close as CloseIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import type { GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
+import html2canvas from 'html2canvas';
 import { schoolService } from '@/services/api';
 import type { Student, PaymentStatus, Class } from '@/types';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useSchool } from '@/contexts/SchoolContext';
 import { PromotionWizard } from './PromotionWizard';
+import { addProfessionalHeader } from '@/utils/pdfHeader';
+
+// CSS for print-only area
+const printStyles = `
+  @media print {
+    @page {
+      size: A4;
+      margin: 0 !important;
+    }
+    
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+      width: 210mm !important;
+      overflow: visible !important;
+    }
+
+    /* Target all elements and hide them */
+    body * {
+      visibility: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* Specifically show the printable certificate and its children */
+    #printable-certificate, #printable-certificate * {
+      visibility: visible !important;
+    }
+
+    /* Position the certificate container naturally to allow the browser to manage pages */
+    #printable-certificate {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 210mm !important;
+      display: block !important;
+      visibility: visible !important;
+      background: white !important;
+      z-index: 999999 !important;
+    }
+
+    #printable-certificate > div {
+      width: 210mm !important;
+      height: 297mm !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      display: block !important;
+      position: relative !important;
+      visibility: visible !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    }
+
+    /* Target the Paper specifically to fill the A4 */
+    .MuiPaper-root {
+      box-shadow: none !important;
+      border: none !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      padding: 1.5cm !important;
+      visibility: visible !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+    }
+
+    /* Hide everything except the printable container and its parents */
+    body > :not(.MuiDialog-root),
+    .MuiBackdrop-root,
+    .MuiDialog-container > :not(.MuiPaper-root),
+    .MuiDialogActions-root,
+    .MuiDialogTitle-root {
+      display: none !important;
+    }
+
+    .MuiDialog-root, .MuiDialog-container, .MuiDialogContent-root {
+      position: static !important;
+      display: block !important;
+      overflow: visible !important;
+      background: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    .no-print {
+      display: none !important;
+    }
+  }
+`;
 
 export const StudentsPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { showNotification } = useNotification();
+  const { settings: schoolSettings } = useSchool();
 
   const [studentsList, setStudentsList] = useState<Student[]>([]);
   const [classesList, setClassesList] = useState<Class[]>([]);
@@ -58,7 +158,10 @@ export const StudentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatus | ''>('');
-  const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
+  const [selectedRows, setSelectedRows] = useState<any>({ type: 'include', ids: new Set() });
+  const [openBulkDeleteDialog, setOpenBulkDeleteDialog] = useState(false);
+  const [bulkDeleteStep, setBulkDeleteStep] = useState(1);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [openAddEditDialog, setOpenAddEditDialog] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -68,6 +171,11 @@ export const StudentsPage: React.FC = () => {
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf' | 'csv'>('excel');
   const [exportScope, setExportScope] = useState<'filtered' | 'all' | 'selected'>('filtered');
   const [openPromotionWizard, setOpenPromotionWizard] = useState(false);
+  const [openImportDialog, setOpenImportDialog] = useState(false);
+  const [openCertificateDialog, setOpenCertificateDialog] = useState(false);
+  const [certificateStudents, setCertificateStudents] = useState<Student[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const [columnVisibilityModel, setColumnVisibilityModel] = useState<Record<string, boolean>>({});
 
   // Initialize column visibility based on isMobile
@@ -78,6 +186,43 @@ export const StudentsPage: React.FC = () => {
       parentName: !isMobile,
     });
   }, [isMobile]);
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const [studentsRes, classesRes] = await Promise.all([
+        schoolService.getStudents(),
+        schoolService.getClasses(),
+      ]);
+      setStudentsList(Array.isArray(studentsRes.data) ? studentsRes.data : []);
+      setClassesList(Array.isArray(classesRes.data) ? classesRes.data : []);
+    } catch (err) {
+      console.error('Failed to fetch students/classes', err);
+      showNotification('Erreur lors du chargement des données', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    try {
+      setIsImporting(true);
+      const res = await schoolService.importStudents(importFile);
+      showNotification(res.data.message || 'Importation réussie', 'success');
+      if (res.data.errors && res.data.errors.length > 0) {
+        console.warn('Import errors:', res.data.errors);
+        showNotification(`${res.data.errors.length} erreurs lors de l'importation. Vérifiez la console.`, 'warning');
+      }
+      setOpenImportDialog(false);
+      setImportFile(null);
+      fetchStudents();
+    } catch (err: any) {
+      showNotification(err.response?.data?.error || 'Erreur lors de l importation', 'error');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   // Form state
   const [studentForm, setStudentForm] = useState({
@@ -95,23 +240,8 @@ export const StudentsPage: React.FC = () => {
   });
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [studentsRes, classesRes] = await Promise.all([
-          schoolService.getStudents(),
-          schoolService.getClasses(),
-        ]);
-        setStudentsList(studentsRes.data);
-        setClassesList(classesRes.data);
-      } catch (error) {
-        console.error('Failed to fetch students/classes', error);
-        showNotification('Erreur lors du chargement des données', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [showNotification]);
+    fetchStudents();
+  }, []);
 
   // Filter students
   const filteredStudents = useMemo(() => {
@@ -227,6 +357,12 @@ export const StudentsPage: React.FC = () => {
   };
 
   const handleSaveStudent = async () => {
+    // Validation
+    if (!studentForm.lastName || !studentForm.firstName || !studentForm.matricule || !studentForm.classId || !studentForm.dateOfBirth || !studentForm.address) {
+      showNotification('Veuillez remplir tous les champs obligatoires (Nom, Prénom, Matricule, Classe, Date de N., Adresse)', 'warning');
+      return;
+    }
+
     try {
       if (selectedStudent) {
         await schoolService.updateStudent(selectedStudent.id, studentForm);
@@ -237,9 +373,30 @@ export const StudentsPage: React.FC = () => {
       }
       setOpenAddEditDialog(false);
       refreshData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save student', error);
-      showNotification('Erreur lors de l\'enregistrement', 'error');
+      
+      // Attempt to extract structured error from backend
+      let errorMessage = 'Erreur lors de l\'enregistrement';
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (typeof data === 'string') {
+          errorMessage = data;
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        } else if (typeof data === 'object') {
+          // Flatten nested DRF errors (e.g., { "matricule": ["This field is required"] })
+          const fields = Object.keys(data);
+          if (fields.length > 0) {
+            const firstField = fields[0];
+            const detail = Array.isArray(data[firstField]) ? data[firstField][0] : data[firstField];
+            errorMessage = `${firstField}: ${detail}`;
+          }
+        }
+      }
+      
+      showNotification(errorMessage, 'error');
     }
   };
 
@@ -253,10 +410,17 @@ export const StudentsPage: React.FC = () => {
   };
 
   const getSelectedCount = () => {
-    if (selectedRows.type === 'exclude') {
-      return filteredStudents.length - selectedRows.ids.size;
+    if (selectedRows?.type === 'exclude') {
+      return filteredStudents.length - (selectedRows.ids?.size || 0);
     }
-    return selectedRows.ids.size;
+    return selectedRows?.ids?.size || 0;
+  };
+
+  const getSelectedIds = (): string[] => {
+    if (selectedRows?.type === 'exclude') {
+      return filteredStudents.filter(s => !selectedRows.ids.has(s.id)).map(s => s.id);
+    }
+    return Array.from(selectedRows?.ids || []) as string[];
   };
 
   const handleSendSMS = (student: Student) => {
@@ -265,7 +429,7 @@ export const StudentsPage: React.FC = () => {
 
   const handleBulkSMS = () => {
     showNotification(`SMS envoyé à ${getSelectedCount()} parents`, 'success');
-    setSelectedRows({ type: 'include', ids: new Set() });
+    setSelectedRows({ type: 'include', ids: new Set() } as any);
   };
 
   const handleExport = () => {
@@ -281,9 +445,7 @@ export const StudentsPage: React.FC = () => {
     let dataToExport: Student[] = [];
     if (exportScope === 'selected') {
       dataToExport = filteredStudents.filter(s => 
-        selectedRows.type === 'exclude' 
-          ? !selectedRows.ids.has(s.id) 
-          : selectedRows.ids.has(s.id)
+        Array.isArray(selectedRows) && selectedRows.includes(s.id)
       );
     } else if (exportScope === 'filtered') {
       dataToExport = filteredStudents;
@@ -302,13 +464,13 @@ export const StudentsPage: React.FC = () => {
     // Format data for export
     const formattedData = dataToExport.map((s, index) => ({
       'Num': index + 1,
-      'Matricule': s.matricule,
-      'Nom et Prénom': `${s.lastName} ${s.firstName}`,
-      'Classe': selectedClass ? selectedClassName : getClassName(s.classId),
-      'Date et Lieu de Naissance': `${new Date(s.dateOfBirth).toLocaleDateString('fr-FR')} à ${s.placeOfBirth || 'N/A'}`,
-      'Sexe': s.gender,
-      'Statut': s.isRepeating ? 'Redoublant' : 'Non redoublant'
-    }));
+          'Matricule': s.matricule,
+          'Nom et Prénom': `${s.lastName} ${s.firstName}`,
+          'Classe': selectedClass ? selectedClassName : getClassName(s.classId),
+          'Date et Lieu de Naissance': `${new Date(s.dateOfBirth).toLocaleDateString('fr-FR')} à ${s.placeOfBirth || 'N/A'}`,
+          'Sexe': s.gender,
+          'Statut': s.isRepeating ? 'Redoublant' : 'Non redoublant'
+        }));
 
     try {
       if (exportFormat === 'excel') {
@@ -318,15 +480,10 @@ export const StudentsPage: React.FC = () => {
         XLSX.writeFile(wb, `${filename}.xlsx`);
       } else if (exportFormat === 'pdf') {
         const doc = new jsPDF('p', 'mm', 'a4');
-        doc.setFontSize(16);
-        doc.text('LISTE DES ÉLÈVES - XSCHOOL', 105, 15, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`Classe : ${selectedClassName}`, 105, 22, { align: 'center' });
-        doc.setFontSize(10);
-        doc.text(`Date d'export: ${new Date().toLocaleString()}`, 14, 28);
+        const startY = addProfessionalHeader(doc, schoolSettings, `LISTE DES ÉLÈVES ${selectedClass ? `(${selectedClassName})` : ''}`);
 
         autoTable(doc, {
-          startY: 34,
+          startY: startY,
           head: [['Num', 'Matricule', 'Nom et Prénom', 'Date et Lieu de Naissance', 'Sexe', 'Statut']],
           body: formattedData.map(row => [
             row['Num'],
@@ -369,6 +526,46 @@ export const StudentsPage: React.FC = () => {
     } catch (error) {
       console.error('Export failed:', error);
       showNotification('Erreur lors de l\'exportation', 'error');
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      showNotification('Génération du PDF haute fidélité...', 'info');
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const container = document.getElementById('printable-certificate');
+      
+      if (!container) {
+        showNotification('Erreur : Certificat introuvable', 'error');
+        return;
+      }
+
+      // Temporarily expand container for capture
+      const originalOverflow = container.style.overflow;
+      container.style.overflow = 'visible';
+
+      const certificateElements = Array.from(container.children);
+      
+      for (let i = 0; i < certificateElements.length; i++) {
+        if (i > 0) doc.addPage();
+        
+        const canvas = await html2canvas(certificateElements[i] as HTMLElement, {
+          scale: 3, // High resolution
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        doc.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+      }
+
+      container.style.overflow = originalOverflow;
+      doc.save(`Certificats_${new Date().getTime()}.pdf`);
+      showNotification('Téléchargement terminé', 'success');
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      showNotification('Erreur lors de la génération du PDF', 'error');
     }
   };
 
@@ -517,7 +714,7 @@ export const StudentsPage: React.FC = () => {
   ];
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 1, sm: 3 } }}>
       {/* Header */}
       <Box
         sx={{
@@ -555,6 +752,22 @@ export const StudentsPage: React.FC = () => {
           >
             Exporter
           </Button>
+          <Tooltip title="Importer des élèves">
+            <Button
+              variant="outlined"
+              startIcon={<CloudUploadIcon />}
+              onClick={() => setOpenImportDialog(true)}
+              sx={{ 
+                borderRadius: 2, 
+                textTransform: 'none', 
+                fontWeight: 600,
+                minWidth: isMobile ? 'auto' : undefined,
+                px: isMobile ? 1.5 : 2
+              }}
+            >
+              {!isMobile && "Importer"}
+            </Button>
+          </Tooltip>
           <Button
             variant="contained"
             size="small"
@@ -565,6 +778,9 @@ export const StudentsPage: React.FC = () => {
           </Button>
         </Box>
       </Box>
+
+      <Typography variant="caption" color="error" sx={{ display: 'none' }}>DEBUG: Selection count = {getSelectedCount()}</Typography>
+      
 
       {/* Filters */}
       <Card sx={{ mb: 3, borderRadius: 3 }}>
@@ -634,27 +850,75 @@ export const StudentsPage: React.FC = () => {
 
       {/* Bulk Actions */}
       {getSelectedCount() > 0 && (
-        <Card sx={{ mb: 2, borderRadius: 3, bgcolor: 'primary.container' }}>
-          <CardContent sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="body2">
-              <strong>{getSelectedCount()}</strong> élève(s) sélectionné(s)
+        <Card sx={{ 
+          mb: 2, 
+          borderRadius: 3, 
+          bgcolor: alpha(theme.palette.primary.main, 0.08),
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+          overflow: 'hidden'
+        }}>
+          <CardContent sx={{ 
+            p: { xs: 1.5, sm: 2 }, 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' }, 
+            justifyContent: 'space-between',
+            gap: 2
+          }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main', textAlign: { xs: 'center', sm: 'left' } }}>
+              {getSelectedCount()} élève(s) sélectionné(s)
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 1, 
+              flexWrap: 'wrap',
+              justifyContent: { xs: 'center', sm: 'flex-end' } 
+            }}>
+              <Button
+                size={isMobile ? "small" : "medium"}
+                variant="contained"
+                startIcon={<VisibilityIcon />}
+                onClick={() => {
+                  const selectedIds = getSelectedIds();
+                  const selectedItems = studentsList.filter(s => selectedIds.includes(s.id));
+                  setCertificateStudents(selectedItems);
+                  setOpenCertificateDialog(true);
+                }}
+                sx={{ borderRadius: 2, textTransform: 'none' }}
+              >
+                Certificats
+              </Button>
               <Button
                 size="small"
                 variant="outlined"
                 startIcon={<MessageIcon />}
                 onClick={handleBulkSMS}
+                sx={{ borderRadius: 2, textTransform: 'none' }}
               >
-                Envoyer SMS
+                {isMobile ? "SMS" : "Envoyer SMS"}
+              </Button>
+               <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => {
+                  setBulkDeleteStep(1);
+                  setDeleteConfirmationText('');
+                  setOpenBulkDeleteDialog(true);
+                }}
+                sx={{ borderRadius: 2, textTransform: 'none' }}
+              >
+                Supprimer
               </Button>
               <Button
                 size="small"
                 variant="outlined"
                 startIcon={<FileDownloadIcon />}
                 onClick={handleExport}
+                sx={{ borderRadius: 2, textTransform: 'none' }}
               >
-                Exporter
+                {isMobile ? "Export" : "Exporter"}
               </Button>
             </Box>
           </CardContent>
@@ -946,6 +1210,18 @@ export const StudentsPage: React.FC = () => {
         </MenuItem>
         <MenuItem
           onClick={() => {
+            if (menuStudent) {
+              setCertificateStudents([menuStudent]);
+              setOpenCertificateDialog(true);
+            }
+            handleMenuClose();
+          }}
+        >
+          <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
+          Certificat de scolarité
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
             menuStudent && handleSendSMS(menuStudent);
             handleMenuClose();
           }}
@@ -978,7 +1254,7 @@ export const StudentsPage: React.FC = () => {
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: 'primary.main', color: 'white' }}>
           <FileDownloadIcon />
-          <Typography variant="h6" fontWeight={700}>Exporter les Élèves</Typography>
+          <Typography component="span" variant="h6" fontWeight={700}>Exporter les Élèves</Typography>
         </DialogTitle>
         <DialogContent sx={{ p: { xs: 2, sm: 3 }, mt: 2 }}>
           <Typography variant="subtitle2" gutterBottom fontWeight={700} color="text.secondary">
@@ -1059,6 +1335,376 @@ export const StudentsPage: React.FC = () => {
         onSuccess={refreshData}
         classesList={classesList}
       />
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog
+        open={openBulkDeleteDialog}
+        onClose={() => setOpenBulkDeleteDialog(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 4, p: 1 }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 0 }}>
+          <Box sx={{ 
+            width: 56, height: 56, borderRadius: '50%', 
+            bgcolor: alpha(theme.palette.error.main, 0.1), 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            mx: 'auto', mb: 2, color: 'error.main'
+          }}>
+            <WarningIcon sx={{ fontSize: 32 }} />
+          </Box>
+          <Typography variant="h6" fontWeight={800}>
+            {bulkDeleteStep === 1 ? "Attention : Action Irréversible" : "Confirmation de sécurité"}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ textAlign: 'center' }}>
+          {bulkDeleteStep === 1 ? (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Vous êtes sur le point de supprimer définitivement 
+                <Box component="span" sx={{ color: 'error.main', fontWeight: 800, mx: 0.5 }}>
+                  {getSelectedCount()} élève(s)
+                </Box>
+                sélectionné(s).
+              </Typography>
+              <Box sx={{ 
+                p: 2, bgcolor: alpha(theme.palette.error.main, 0.05), 
+                borderRadius: 2, textAlign: 'left', mb: 2,
+                border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`
+              }}>
+                <Typography variant="caption" color="error.main" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
+                  CONSÉQUENCES DE LA SUPPRESSION :
+                </Typography>
+                <Typography variant="caption" component="div" sx={{ color: 'text.secondary', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  • Suppression de tous les dossiers scolaires<br/>
+                  • Suppression historique complet des paiements<br/>
+                  • Cette action ne peut pas être annulée
+                </Typography>
+              </Box>
+            </>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mb: 3 }}>
+                Pour confirmer la suppression de <strong>{getSelectedCount()} élèves</strong>,<br/>
+                veuillez saisir <strong>SUPPRIMER</strong> ci-dessous :
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                autoFocus
+                placeholder="Saisissez SUPPRIMER"
+                value={deleteConfirmationText}
+                onChange={(e) => setDeleteConfirmationText(e.target.value.toUpperCase())}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': { borderRadius: 2 },
+                  '& input': { textAlign: 'center', fontWeight: 700, letterSpacing: 2 }
+                }}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, gap: 1 }}>
+          <Button 
+            fullWidth 
+            onClick={() => setOpenBulkDeleteDialog(false)}
+            sx={{ borderRadius: 2, textTransform: 'none' }}
+          >
+            Annuler
+          </Button>
+          <Button
+            fullWidth
+            variant="contained"
+            color="error"
+            disabled={bulkDeleteStep === 2 && deleteConfirmationText !== 'SUPPRIMER'}
+            onClick={() => {
+              if (bulkDeleteStep === 1) {
+                setBulkDeleteStep(2);
+              } else {
+                showNotification(`${getSelectedCount()} élèves ont été supprimés avec succès`, 'success');
+                setSelectedRows({ type: 'include', ids: new Set() } as any);
+                setOpenBulkDeleteDialog(false);
+                // Here you would call schoolService.deleteStudents(getSelectedIds())
+              }
+            }}
+            sx={{ borderRadius: 2, textTransform: 'none', px: 4 }}
+          >
+            {bulkDeleteStep === 1 ? "Continuer" : "Confirmer la suppression"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Import Students Dialog */}
+      <Dialog open={openImportDialog} onClose={() => !isImporting && setOpenImportDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Importer des Élèves</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Veuillez préparer votre fichier (Excel ou CSV) en suivant scrupuleusement ces règles pour garantir le succès de l'importation :
+          </Typography>
+          
+          <Box sx={{ bgcolor: 'action.hover', p: 2, borderRadius: 2, mb: 3 }}>
+            <Typography variant="subtitle2" fontWeight={700} gutterBottom>Ordre recommandé des colonnes (G à D) :</Typography>
+            <Grid container spacing={1}>
+              {['Matricule', 'Nom', 'Prenom', 'Sexe (M/F)', 'Date_Naissance', 'Lieu_Naissance', 'Adresse', 'Parent_Nom', 'Parent_Tel', 'Classe'].map((col) => {
+                const isMandatory = ['Nom', 'Prenom', 'Sexe (M/F)', 'Date_Naissance', 'Classe'].includes(col);
+                return (
+                  <Grid size={{ xs: 12 }} key={col}>
+                    <Chip 
+                      label={col} 
+                      size="small" 
+                      color={isMandatory ? "primary" : "default"} 
+                      variant={isMandatory ? "filled" : "outlined"}
+                      sx={{ fontWeight: 600 }} 
+                    />
+                  </Grid>
+                );
+              })}
+            </Grid>
+            <Typography variant="caption" sx={{ display: 'block', mt: 2, color: 'text.secondary' }}>
+              • Les colonnes en <strong>bleu</strong> sont obligatoires.<br/>
+              • La <strong>Classe</strong> doit correspondre exactement au nom d'une classe existante.<br/>
+              • Format Date : <strong>AAAA-MM-JJ</strong> ou <strong>JJ/MM/AAAA</strong>.
+            </Typography>
+          </Box>
+
+          <Box sx={{ textAlign: 'center', py: 2 }}>
+            <input
+              type="file"
+              accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+              style={{ display: 'none' }}
+              id="import-file-input"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+            />
+            <label htmlFor="import-file-input">
+              <Button
+                variant="outlined"
+                component="span"
+                startIcon={<CloudUploadIcon />}
+                sx={{ mb: 1 }}
+              >
+                {importFile ? 'Changer de fichier' : 'Sélectionner le fichier'}
+              </Button>
+            </label>
+            {importFile && (
+              <Typography variant="body2" fontWeight={700} color="primary">
+                Fichier sélectionné : {importFile.name}
+              </Typography>
+            )}
+          </Box>
+
+          {isImporting && <LinearProgress sx={{ mt: 2 }} />}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpenImportDialog(false)} disabled={isImporting}>Annuler</Button>
+          <Button 
+            variant="contained" 
+            onClick={handleImport} 
+            disabled={!importFile || isImporting}
+            startIcon={isImporting ? null : <CloudUploadIcon />}
+          >
+            {isImporting ? 'Importation en cours...' : 'Lancer l\'importation'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <style>{printStyles}</style>
+      <Dialog 
+        open={openCertificateDialog} 
+        onClose={() => setOpenCertificateDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+        fullScreen={isMobile}
+      >
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Aperçu des Certificats ({certificateStudents.length} sélectionné{certificateStudents.length > 1 ? 's' : ''})
+          <IconButton onClick={() => setOpenCertificateDialog(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ bgcolor: 'grey.100', p: isMobile ? 0.5 : 4, overflowX: 'auto' }}>
+          <Box id="printable-certificate" sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: isMobile ? 4 : 0, // No gap when printing multiple, CSS handles breaks
+            width: isMobile ? '21cm' : '100%',
+            mx: 'auto'
+          }}>
+            {certificateStudents.map((student, idx) => (
+              <Box 
+                key={student.id} 
+                sx={{ 
+                  width: '21cm', 
+                  mx: 'auto',
+                  transform: isMobile ? `scale(${(window.innerWidth - 40) / 794})` : 'none',
+                  transformOrigin: 'top center',
+                  mb: isMobile ? `-${(29.7 * (1 - (window.innerWidth - 40) / 794))}cm` : 2
+                }}
+              >
+                <Paper 
+                  elevation={3} 
+                  sx={{ 
+                    width: '21cm', 
+                    minHeight: '29.7cm', 
+                    p: '1.5cm', 
+                    bgcolor: 'white', 
+                    position: 'relative',
+                    pageBreakAfter: 'always',
+                    fontFamily: '"Times New Roman", Times, serif',
+                    color: 'black',
+                    lineHeight: 1.4,
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+                  {/* Header Section */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4, borderBottom: '1px solid #eee', pb: 2 }}>
+                    <Box sx={{ textAlign: 'center', flex: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'black' }}>REPUBLIQUE DU CAMEROUN</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Paix - Travail - Patrie</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 1, fontWeight: 800, color: 'black' }}>
+                        {(schoolSettings.establishment_name || schoolSettings.name || '').toUpperCase()}
+                      </Typography>
+                      {schoolSettings.slogan && (
+                        <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', fontStyle: 'italic', mb: 1, color: 'black' }}>
+                          {schoolSettings.slogan}
+                        </Typography>
+                      )}
+                      {schoolSettings.article_text && (
+                        <Typography variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: 'black', maxWidth: '180px', mx: 'auto', lineHeight: 1.1, mb: 1 }}>
+                          {schoolSettings.article_text}
+                        </Typography>
+                      )}
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Tél : {schoolSettings.phone}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>B.P. {schoolSettings.postal_code} {schoolSettings.city}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Email : {schoolSettings.email}</Typography>
+                    </Box>
+                    
+                    <Box sx={{ px: 2, display: 'flex', alignItems: 'center' }}>
+                      <img 
+                        src={schoolSettings.logo || '/logo.png'} 
+                        alt="Logo" 
+                        style={{ height: '80px', objectFit: 'contain' }} 
+                      />
+                    </Box>
+
+                    <Box sx={{ textAlign: 'center', flex: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'black' }}>REPUBLIC OF CAMEROON</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Peace - Work - Fatherland</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 1, fontWeight: 800, color: 'black' }}>
+                        {(schoolSettings.english_name || schoolSettings.establishment_name || schoolSettings.name || '').toUpperCase()}
+                      </Typography>
+                      {schoolSettings.slogan && (
+                        <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', fontStyle: 'italic', mb: 1, color: 'black' }}>
+                          {schoolSettings.slogan}
+                        </Typography>
+                      )}
+                      {schoolSettings.article_text && (
+                        <Typography variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: 'black', maxWidth: '180px', mx: 'auto', lineHeight: 1.1, mb: 1 }}>
+                          {schoolSettings.article_text}
+                        </Typography>
+                      )}
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Phone : {schoolSettings.phone}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>PO.BOX {schoolSettings.postal_code} {schoolSettings.city}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>Email : {schoolSettings.email}</Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Main Title */}
+                  <Box sx={{ textAlign: 'center', mb: 6 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'black', display: 'block' }}>
+                      Réf. : {schoolSettings.certificate_reference?.replace('{ANNEE}', new Date().getFullYear().toString()) || ''}{student.matricule}/{idx + 1}
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 900, textDecoration: 'underline', mt: 2, color: 'black' }}>
+                      CERTIFICAT DE SCOLARITÉ / SCHOOL ATTESTATION
+                    </Typography>
+                  </Box>
+
+                  {/* Body Content */}
+                  <Box sx={{ px: 4, flex: 1 }}>
+                    <Typography variant="body1" paragraph sx={{ color: 'black' }}>
+                      Je soussigné(e), certifie que / I, the undersigned, certify that
+                    </Typography>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: 2, '& .MuiTypography-root': { fontSize: '1.1rem', color: 'black' } }}>
+                      <Typography sx={{ fontWeight: 700 }}>Matricule / Registration N° :</Typography>
+                      <Typography sx={{ fontWeight: 800 }}>{student.matricule}</Typography>
+
+                      <Typography sx={{ fontWeight: 700 }}>Nom et Prénom(s) / Full Name :</Typography>
+                      <Typography sx={{ fontWeight: 800 }}>{student.lastName.toUpperCase()} {student.firstName}</Typography>
+
+                      <Typography sx={{ fontWeight: 700 }}>Date de naissance / Date of Birth :</Typography>
+                      <Typography>{new Date(student.dateOfBirth).toLocaleDateString()}</Typography>
+
+                      <Typography sx={{ fontWeight: 700 }}>Lieu de naissance / Place of Birth :</Typography>
+                      <Typography>{student.placeOfBirth || '-'}</Typography>
+
+                      <Typography sx={{ fontWeight: 700 }}>Classe / Level :</Typography>
+                      <Typography sx={{ fontWeight: 800 }}>{student.className}</Typography>
+
+                      <Typography sx={{ fontWeight: 700 }}>Parent / Tuteur :</Typography>
+                      <Typography>{student.parentName}</Typography>
+
+                      <Typography sx={{ fontWeight: 700 }}>Téléphone Parent :</Typography>
+                      <Typography>{student.parentPhone}</Typography>
+
+                      <Typography sx={{ fontWeight: 700 }}>Établissement / Institution :</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>{(schoolSettings.establishment_name || schoolSettings.name)}</Typography>
+
+                      <Typography sx={{ fontWeight: 700 }}>Année académique :</Typography>
+                      <Typography fontWeight={800}>{new Date().getFullYear() - 1} / {new Date().getFullYear()}</Typography>
+                    </Box>
+
+                    <Typography variant="body1" sx={{ mt: 6, fontStyle: 'italic', color: 'black' }}>
+                      En foi de quoi le présent certificat lui est délivré pour servir et valoir ce que de droit.
+                      <br/>
+                      <small>This certificate is consequently issued to serve all legal purposes.</small>
+                    </Typography>
+
+                    {/* Signatures */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 8 }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="body2" sx={{ color: 'black' }}>Fait à {schoolSettings.city} le :</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, mt: 1, color: 'black' }}>{new Date().toLocaleDateString()}</Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'center', minWidth: '250px' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'black' }}>{schoolSettings.director_title}</Typography>
+                        <Typography variant="caption" sx={{ display: 'block', color: 'black' }}>The Principal / Director</Typography>
+                        <Box sx={{ mt: 8, borderTop: '1px dashed #ccc', pt: 1 }}>
+                          <Typography variant="caption" color="text.secondary">Cachet et Signature / Stamp and Signature</Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Footer NB */}
+                  <Box sx={{ mt: 'auto', borderTop: '1px solid #eee', pt: 2 }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: 'black', textAlign: 'justify' }}>
+                      N.B. : Il n'est délivré qu'un seul certificat de scolarité. L'étudiant(e) pourra en faire établir autant de copies certifiées conformes qu'il le voudra. / Only one school attestation is issued — it is in the interest of the owner to make as many certified true copies as he/she may desire.
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpenCertificateDialog(false)}>Annuler</Button>
+          <Button 
+            variant="outlined" 
+            startIcon={<FileDownloadIcon />}
+            onClick={handleDownloadPDF}
+          >
+            Télécharger (.pdf)
+          </Button>
+          <Button 
+            variant="contained" 
+            startIcon={<VisibilityIcon />}
+            onClick={() => window.print()}
+          >
+            Imprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
+

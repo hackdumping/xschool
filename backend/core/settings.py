@@ -33,6 +33,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '.vercel.app',
+    '192.168.1.166'
 ]
 if os.environ.get('VERCEL_URL'):
     ALLOWED_HOSTS.append(os.environ.get('VERCEL_URL'))
@@ -46,11 +47,14 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
     'accounts',
+    'tenants',
     'school',
     'finance',
     'agenda',
@@ -64,6 +68,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'tenants.middleware.TenantMiddleware',
     'school.middleware.SchoolSecurityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -176,6 +181,16 @@ else:
             os.makedirs(MEDIA_ROOT, exist_ok=True)
         except:
             pass
+
+# Cloudinary Storage Configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+
+# Use Cloudinary for media files
+DEFAULT_FILE_STORAGE = 'cloudinary_storageOxmicPlevM5LXbd8aHy-U5vB3Bc.storage.MediaCloudinaryStorage'
 
 # Token for URL-based migrations
 MIGRATION_TOKEN = os.environ.get('MIGRATION_TOKEN', 'xschool-safe-migrate-2026')

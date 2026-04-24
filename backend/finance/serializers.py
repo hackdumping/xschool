@@ -59,4 +59,16 @@ class PaymentSerializer(serializers.ModelSerializer):
 class ExpenseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expense
-        fields = '__all__'
+        fields = ('id', 'description', 'amount', 'date', 'category', 'recorded_by', 'receipt_url')
+
+class TeacherPaymentSerializer(serializers.ModelSerializer):
+    teacherName = serializers.SerializerMethodField()
+    teacherMatricule = serializers.CharField(source='teacher.matricule', read_only=True)
+    
+    def get_teacherName(self, obj):
+        return f"{obj.teacher.last_name.upper()} {obj.teacher.first_name}"
+
+    class Meta:
+        from .models import TeacherPayment
+        model = TeacherPayment
+        fields = ('id', 'teacher', 'base_salary', 'total_sanctions', 'amount_paid', 'date', 'month', 'year', 'recorded_by', 'notes', 'teacherName', 'teacherMatricule')

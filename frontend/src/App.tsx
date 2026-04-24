@@ -23,7 +23,9 @@ import { FinancialSummaryPage } from '@/pages/Finances/FinancialSummaryPage';
 import { CalendarPage } from '@/pages/Agenda/CalendarPage';
 import { ProfilePage } from '@/pages/Profile/ProfilePage';
 import { SettingsPage } from '@/pages/Settings/SettingsPage';
+import { TeachersPage } from '@/pages/Users/TeachersPage';
 import { ReceiptPage } from '@/pages/Finances/ReceiptPage';
+import SuperDashboard from '@/pages/SuperAdmin/SuperDashboard';
 import { ProtectedRoute } from '@/components/Auth/ProtectedRoute';
 
 function App() {
@@ -64,6 +66,7 @@ function App() {
                             <Route path="/dashboard" element={<DashboardPage />} />
                             <Route path="/students" element={<StudentsPage />} />
                             <Route path="/classes" element={<ClassesPage />} />
+                            <Route path="/teachers" element={<TeachersPage />} />
                             <Route path="/grades" element={<GradesPage />} />
                             <Route path="/finances/payments" element={<PaymentsPage />} />
                             <Route path="/finances/expenses" element={<ExpensesPage />} />
@@ -72,6 +75,8 @@ function App() {
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/settings" element={<SettingsPage />} />
                             <Route path="/receipt/:id" element={<ReceiptPage />} />
+                            <Route path="/superadmin" element={<Navigate to="/superadmin/dashboard" replace />} />
+                            <Route path="/superadmin/:tab" element={<SuperDashboard />} />
                           </Routes>
                         </Layout>
                       </ProtectedRoute>

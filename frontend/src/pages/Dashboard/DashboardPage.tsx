@@ -32,6 +32,7 @@ import {
   PersonAdd as PersonAddIcon,
   Receipt as ReceiptIcon,
   Assessment as AssessmentIcon,
+  School as SchoolIcon,
 } from '@mui/icons-material';
 import { 
   BarChart, 
@@ -53,12 +54,13 @@ interface KPICardProps {
   subtitle?: string;
   icon: React.ReactNode;
   color: string;
+  valueColor?: string;
   trend?: { value: number; isPositive: boolean };
   trendTextColor?: string;
   progress?: number;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ title, value, subtitle, icon, color, trend, trendTextColor, progress }) => (
+const KPICard: React.FC<KPICardProps> = ({ title, value, subtitle, icon, color, valueColor, trend, trendTextColor, progress }) => (
   <Card sx={{ 
     height: '100%', 
     position: 'relative',
@@ -79,7 +81,8 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, subtitle, icon, color, 
           <Typography variant="h4" sx={{ 
             fontWeight: 800, 
             fontSize: { xs: '1.75rem', sm: '2.25rem' },
-            letterSpacing: '-0.02em'
+            letterSpacing: '-0.02em',
+            color: valueColor || 'text.primary'
           }}>
             {value}
           </Typography>
@@ -219,10 +222,20 @@ const getAlertColor = (severity: string) => {
 
 import { useEffect, useState, useMemo } from 'react';
 import { dashboardService, schoolService } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Student, Class } from '@/types';
+
+const CATEGORY_CONFIG: Record<string, { label: string; color: string }> = {
+  garderie: { label: 'Garderie', color: '#FF9800' },
+  primaire: { label: 'École Primaire', color: '#4CAF50' },
+  general: { label: 'Enseignement Général', color: '#2196F3' },
+  technique: { label: 'Enseignement Technique', color: '#E91E63' },
+  formation: { label: 'Centre de formation', color: '#9C27B0' },
+};
 
 export const DashboardPage: React.FC = () => {
   const theme = useTheme();
+  const { user } = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const { showNotification, fetchNotifications } = useNotification();
@@ -258,22 +271,25 @@ export const DashboardPage: React.FC = () => {
   
   // Prepare chart data
   const chartData = useMemo(() => {
-    const getStudentsPerClass = (category: string) => {
-      return classes
-        .filter(c => c.category === category)
+    // FIX: Use settings.selected_types from SchoolContext instead of user profile
+    // to ensure dashboard cycles are dynamic during impersonation.
+    const allowedTypes = settings.selected_types || ['general'];
+    
+    const studentsPerType: Record<string, any[]> = {};
+    
+    allowedTypes.forEach(type => {
+      studentsPerType[type] = classes
+        .filter(c => c.category === type)
         .map(c => ({
           name: c.name,
           students: students.filter(s => s.classId === c.id).length,
           capacity: c.maxSize
         }))
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    };
+    });
 
-    return {
-      general: getStudentsPerClass('general'),
-      technique: getStudentsPerClass('technique')
-    };
-  }, [classes, students]);
+    return studentsPerType;
+  }, [classes, students, user]);
 
   const handleQuickAction = (action: string) => {
     switch (action) {
@@ -325,13 +341,20 @@ export const DashboardPage: React.FC = () => {
           gap: 2
         }}
       >
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
-            Tableau de bord
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Vue d'ensemble de l'établissement
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+            <Avatar 
+              src={settings.logo || '/logo.png'}
+              variant="square" 
+              sx={{ width: 64, height: 64, borderRadius: 3, bgcolor: 'background.paper', p: 1, boxShadow: theme.shadows[1] }}
+            />
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5, fontSize: { xs: '1.5rem', sm: '2.125rem' }, letterSpacing: '-0.02em' }}>
+              {settings.establishment_name || settings.name || 'Tableau de bord'}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+              {settings.slogan || "Vue d'ensemble de l'établissement"}
+            </Typography>
+          </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignSelf: { xs: 'flex-start', sm: 'auto' }, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
           <Button
@@ -373,74 +396,88 @@ export const DashboardPage: React.FC = () => {
 
       {/* KPI Cards */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        {/* 1. Total à Recouvrir (Amount + Progress Bar) */}
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        {/* 1. Montant attendu */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <KPICard
-            title="Total à Recouvrir"
+            title="Montant attendu"
             value={`${(kpi.totalExpected || 0).toLocaleString()} ${settings.currency_symbol}`}
-            subtitle="Montant total attendu"
+            subtitle="Prévisionnel global"
             icon={<AccountBalanceIcon />}
             color="#2196F3"
             progress={kpi.globalRecoveryRate || 0}
           />
         </Grid>
 
-        {/* 2. Total Recouvré */}
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        {/* 2. Total des revenus */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <KPICard
-            title="Total Recouvré"
+            title="Total des revenus"
             value={`${(kpi.totalIncome || 0).toLocaleString()} ${settings.currency_symbol}`}
-            subtitle="Paiements effectués"
+            subtitle="Recettes encaissées"
             icon={<TrendingUpIcon />}
             color="#4CAF50"
+            valueColor="success.main"
             trend={{ value: 12.5, isPositive: true }}
             trendTextColor="common.black"
           />
         </Grid>
 
-        {/* 3. Reste à Recouvrir */}
+        {/* 3. Total des dépenses */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <KPICard
+            title="Total des dépenses"
+            value={`${(kpi.totalExpenses || 0).toLocaleString()} ${settings.currency_symbol}`}
+            subtitle="Frais et charges"
+            icon={<TrendingDownIcon />}
+            color="#F44336"
+            valueColor="error.main"
+          />
+        </Grid>
+
+        {/* 4. Solde */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <KPICard
+            title="Solde"
+            value={`${(kpi.generalBalance || 0).toLocaleString()} ${settings.currency_symbol}`}
+            subtitle="Disponibilité en caisse"
+            icon={<PaymentIcon />}
+            color="#9C27B0"
+          />
+        </Grid>
+
+        {/* 5. Reste à Recouvrir */}
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <KPICard
             title="Reste à Recouvrir"
             value={`${(kpi.totalRemaining || 0).toLocaleString()} ${settings.currency_symbol}`}
             subtitle="Solde en attente"
-            icon={<TrendingDownIcon />}
+            icon={<ReceiptIcon />}
             color="#FF9800"
           />
         </Grid>
 
-        {/* 4. Dépenses Totales */}
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <KPICard
-            title="Dépenses Totales"
-            value={`${(kpi.totalExpenses || 0).toLocaleString()} ${settings.currency_symbol}`}
-            subtitle="Dépenses effectuées"
-            icon={<ReceiptIcon />}
-            color="#F44336"
-          />
-        </Grid>
-
-        {/* 5. Total Élève */}
+        {/* 6. Total Élève */}
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <KPICard
             title="Total Élèves"
             value={kpi.totalStudents}
-            subtitle={`${kpi.totalClasses} classes actives`}
+            subtitle={`${kpi.totalClasses} classes | ${kpi.totalCapacity - kpi.totalStudents} places libres`}
             icon={<PeopleIcon />}
             color="#00BCD4"
+            progress={kpi.totalOccupancyRate || 0}
             trend={{ value: 5.2, isPositive: true }}
             trendTextColor="common.black"
           />
         </Grid>
 
-        {/* 6. Alerte Active */}
+        {/* 7. Alerte Active */}
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <KPICard
             title="Alertes Actives"
             value={kpi.activeAlerts}
             subtitle={`${kpi.pendingPayments} paiements en attente`}
             icon={<WarningIcon />}
-            color="#9C27B0"
+            color="#607D8B"
           />
         </Grid>
       </Grid>
@@ -619,93 +656,58 @@ export const DashboardPage: React.FC = () => {
       
       {/* Education Distribution Charts */}
       <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                Effectifs - Enseignement Général
-              </Typography>
-              <Box sx={{ height: 350, width: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData.general} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                      angle={-45}
-                      textAnchor="end"
-                      interval={0}
-                    />
-                    <YAxis 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                    />
-                    <RechartsTooltip 
-                      contentStyle={{ 
-                        borderRadius: 12, 
-                        border: 'none', 
-                        boxShadow: theme.shadows[3],
-                        backgroundColor: theme.palette.background.paper
-                      }}
-                    />
-                    <Bar dataKey="students" name="Nombre d'élèves" radius={[4, 4, 0, 0]}>
-                      {chartData.general.map((_entry, index) => (
-                        <Cell key={`cell-${index}`} fill={theme.palette.primary.main} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                Effectifs - Enseignement Technique
-              </Typography>
-              <Box sx={{ height: 350, width: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData.technique} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                      angle={-45}
-                      textAnchor="end"
-                      interval={0}
-                    />
-                    <YAxis 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                    />
-                    <RechartsTooltip 
-                      contentStyle={{ 
-                        borderRadius: 12, 
-                        border: 'none', 
-                        boxShadow: theme.shadows[3],
-                        backgroundColor: theme.palette.background.paper
-                      }}
-                    />
-                    <Bar dataKey="students" name="Nombre d'élèves" radius={[4, 4, 0, 0]}>
-                      {chartData.technique.map((_entry, index) => (
-                        <Cell key={`cell-tech-${index}`} fill="#E91E63" />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        {Object.entries(chartData).map(([type, data]) => (
+          <Grid size={{ xs: 12, lg: Object.keys(chartData).length === 1 ? 12 : 6 }} key={type}>
+            <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                  Effectifs - {CATEGORY_CONFIG[type]?.label || type}
+                </Typography>
+                <Box sx={{ height: 350, width: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
+                      <XAxis 
+                        dataKey="name" 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
+                        angle={-45}
+                        textAnchor="end"
+                        interval={0}
+                      />
+                      <YAxis 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
+                      />
+                      <RechartsTooltip 
+                        contentStyle={{ 
+                          borderRadius: 12, 
+                          border: 'none', 
+                          boxShadow: theme.shadows[3],
+                          backgroundColor: theme.palette.background.paper
+                        }}
+                      />
+                      <Bar dataKey="students" name="Nombre d'élèves" radius={[4, 4, 0, 0]}>
+                        {data.map((_entry, index) => (
+                          <Cell key={`cell-${type}-${index}`} fill={CATEGORY_CONFIG[type]?.color || theme.palette.primary.main} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+        {Object.keys(chartData).length === 0 && (
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ py: 8, textAlign: 'center', bgcolor: 'background.paper', borderRadius: 4 }}>
+              <Typography color="text.secondary">Aucune donnée de classe disponible pour vos cycles d'enseignement.</Typography>
+            </Box>
+          </Grid>
+        )}
       </Grid>
     </Box>
   );

@@ -45,6 +45,7 @@ import { useSchool } from '@/contexts/SchoolContext';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { addProfessionalHeader } from '@/utils/pdfHeader';
 
 const formatAmount = (amount: number) => {
   return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -273,16 +274,13 @@ export const ExpensesPage: React.FC = () => {
         const ws = XLSX.utils.json_to_sheet(tableData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Dépenses');
-        XLSX.writeFile(wb, `depenses_xschool_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(wb, `depenses_${(settings.establishment_name || settings.name).toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
       } else if (exportFormat === 'pdf') {
         const doc = new jsPDF();
-        doc.text('RAPPORT DES DÉPENSES - XSCHOOL', 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Généré le : ${new Date().toLocaleString()}`, 14, 22);
-        doc.text(`Total des dépenses : ${formatAmount(totalExpenses)} ${settings.currency_symbol}`, 14, 29);
+        const startY = addProfessionalHeader(doc, settings, `RAPPORT DES DÉPENSES`);
 
         autoTable(doc, {
-          startY: 35,
+          startY: startY,
           head: [['Date', 'Description', 'Catégorie', 'Montant (XAF)', 'Enregistré par']],
           body: filteredExpenses.map(e => [
             new Date(e.date).toLocaleDateString('fr-FR'),
@@ -294,7 +292,7 @@ export const ExpensesPage: React.FC = () => {
           styles: { fontSize: 8 },
           headStyles: { fillColor: [211, 47, 47] } // Red for expenses
         });
-        doc.save(`depenses_xschool_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`depenses_${(settings.establishment_name || settings.name).toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
       } else {
         const csvContent = [
           ['Date', 'Description', 'Catégorie', 'Montant (XAF)', 'Enregistre par'],
@@ -310,7 +308,7 @@ export const ExpensesPage: React.FC = () => {
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.setAttribute('download', `depenses_xschool_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `depenses_${(settings.establishment_name || settings.name).toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

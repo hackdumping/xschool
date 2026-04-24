@@ -58,10 +58,18 @@ import {
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
   Delete as DeleteIcon,
+  PersonAdd as PersonAddIcon,
+  SwapHoriz as SwapHorizIcon,
+  Business as BusinessIcon,
+  MonitorHeart as MonitorIcon,
+  Dns as ServerIcon,
+  Timeline as InsightsIcon,
+  SupervisedUserCircle as GroupIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { authService, schoolService } from '@/services/api';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -80,6 +88,7 @@ const navItems: NavItem[] = [
   { label: 'Tableau de bord', icon: <DashboardIcon />, path: '/dashboard' },
   { label: 'Élèves', icon: <PeopleIcon />, path: '/students' },
   { label: 'Classes', icon: <SchoolIcon />, path: '/classes' },
+  { label: 'Enseignants', icon: <PersonIcon />, path: '/teachers' },
 
   {
     label: 'Finances',
@@ -92,6 +101,14 @@ const navItems: NavItem[] = [
   },
   { label: 'Agenda', icon: <CalendarIcon />, path: '/agenda' },
   { label: 'Paramètres', icon: <SettingsIcon />, path: '/settings' },
+];
+
+const adminNavItems: NavItem[] = [
+  { label: 'Mission Control', icon: <MonitorIcon />, path: '/superadmin/dashboard' },
+  { label: 'Établissements', icon: <BusinessIcon />, path: '/superadmin/schools' },
+  { label: 'Utilisateurs Globaux', icon: <GroupIcon />, path: '/superadmin/users' },
+  { label: 'Performance Globale', icon: <InsightsIcon />, path: '/superadmin/performance' },
+  { label: 'Sécurité & Infrastructure', icon: <ServerIcon />, path: '/superadmin/system' },
 ];
 
 const DRAWER_WIDTH = 280;
@@ -111,6 +128,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['Finances']);
   const [searchQuery, setSearchQuery] = useState('');
+  const [establishments, setEstablishments] = useState<any[]>([]);
+  const [selectedTenantId, setSelectedTenantId] = useState<string>(localStorage.getItem('selectedTenantId') || '');
+  const [loadingEstabs, setLoadingEstabs] = useState(false);
+  const [tenantAnchor, setTenantAnchor] = useState<null | HTMLElement>(null);
 
   const {
     notifications,
@@ -142,6 +163,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
     setNotificationAnchor(null);
   };
 
+  const handleTenantMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setTenantAnchor(event.currentTarget);
+  };
+
+  const handleTenantMenuClose = () => {
+    setTenantAnchor(null);
+  };
+
   const handleLogout = () => {
     setAnchorEl(null);
     setLogoutDialogOpen(true);
@@ -170,6 +199,48 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
     }
   };
 
+  const isSuperAdmin = user?.is_superuser || user?.username === 'admin';
+
+  React.useEffect(() => {
+    if (isSuperAdmin) {
+      const fetchEstabs = async () => {
+        try {
+          setLoadingEstabs(true);
+          const data = await authService.getEstablishments();
+          setEstablishments(data);
+        } catch (error) {
+          console.error('Failed to fetch establishments', error);
+        } finally {
+          setLoadingEstabs(false);
+        }
+      };
+      fetchEstabs();
+    }
+  }, [isSuperAdmin]);
+
+  const handleTenantChange = (id: string) => {
+    if (id === '') {
+      localStorage.removeItem('selectedTenantId');
+      setSelectedTenantId('');
+      showNotification('Vue globale activée...', 'info');
+      if (!location.pathname.startsWith('/superadmin')) {
+        window.location.href = '/superadmin/dashboard';
+      } else {
+        window.location.reload();
+      }
+    } else {
+      localStorage.setItem('selectedTenantId', id);
+      setSelectedTenantId(id);
+      showNotification('Changement d\'établissement...', 'info');
+      // Force hard redirect to standard tenant dashboard when leaving global context
+      if (location.pathname.startsWith('/superadmin')) {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.reload();
+      }
+    }
+  };
+
   const isActive = (path: string) => location.pathname === path;
   const isParentActive = (item: NavItem) => {
     if (item.path) return isActive(item.path);
@@ -187,31 +258,37 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
       <Toolbar sx={{ display: { xs: 'none', md: 'flex' } }} />
 
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: 3,
-            backgroundColor: 'primary.main',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <SchoolIcon sx={{ color: 'primary.contrastText' }} />
-        </Box>
+        {settings.logo ? (
+          <Avatar 
+            src={settings.logo} 
+            variant="square"
+            sx={{ width: 44, height: 44, borderRadius: 2.5, bgcolor: 'background.paper', p: 0.5 }}
+          />
+        ) : (
+          <Box
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: 2.5,
+              backgroundColor: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <SchoolIcon sx={{ color: 'primary.contrastText' }} />
+          </Box>
+        )}
         <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-          {settings.name ? settings.name.split(' ')[0] : 'XSCHOOL'}
+          {(settings.establishment_name || settings.name || 'SCHOOL').split(' ')[0]}
         </Typography>
       </Box>
 
       <Divider sx={{ mx: 2 }} />
 
-      <List sx={{ flex: 1, px: 2, py: 2 }}>
-        {navItems
-          .filter(item => item.label !== 'Paramètres' || user?.role === 'admin')
-          .map((item) => (
-            <React.Fragment key={item.label}>
+      <List sx={{ flex: 1, px: 1.5, py: 2 }}>
+          {(user?.username === 'admin' && location.pathname.startsWith('/superadmin') ? adminNavItems : navItems).map((item) => (
+            <Box key={item.label}>
               {item.children ? (
                 <>
                   <ListItem disablePadding sx={{ mb: 0.5 }}>
@@ -292,7 +369,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
                   </ListItemButton>
                 </ListItem>
               )}
-            </React.Fragment>
+            </Box>
           ))}
       </List>
 
@@ -320,6 +397,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
           backdropFilter: 'blur(12px)',
           borderBottom: `1px solid ${theme.palette.divider}`,
           color: 'text.primary',
+          boxShadow: 'none',
           zIndex: { md: (theme) => theme.zIndex.drawer + 1, xs: (theme) => theme.zIndex.appBar },
         }}
       >
@@ -334,45 +412,128 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
               <MenuIcon />
             </IconButton>
             {!isMobile && (
-              <Box
-                component="form"
-                onSubmit={handleSearch}
-                sx={{
-                  flex: 1,
-                  maxWidth: 300,
-                  display: 'flex',
-                  alignItems: 'center',
-                  backgroundColor: 'action.hover',
-                  borderRadius: 3,
-                  px: 2,
-                  py: 0.5,
-                }}
-              >
-                <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                <InputBase
-                  placeholder="Rechercher..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  sx={{ flex: 1 }}
-                />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  component="form"
+                  onSubmit={handleSearch}
+                  sx={{
+                    flex: 1,
+                    minWidth: 200,
+                    maxWidth: 300,
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: 'action.hover',
+                    borderRadius: 3,
+                    px: 2,
+                    py: 0.5,
+                  }}
+                >
+                  <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                  <InputBase
+                    placeholder="Rechercher..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{ flex: 1 }}
+                  />
+                </Box>
               </Box>
             )}
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 } }}>
+            {isSuperAdmin && (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {/* Desktop Button */}
+                <Button
+                  size="small"
+                  onClick={handleTenantMenuOpen}
+                  startIcon={<BusinessIcon sx={{ color: 'primary.main', fontSize: 20 }} />}
+                  endIcon={<SwapHorizIcon />}
+                  sx={{ 
+                    display: { xs: 'none', md: 'flex' },
+                    color: 'primary.main', 
+                    fontWeight: 700, 
+                    textTransform: 'none',
+                    border: '1px solid currentColor',
+                    borderRadius: 2,
+                    px: 2,
+                    py: 0.5,
+                    bgcolor: 'primary.container',
+                    '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.08)' }
+                  }}
+                >
+                  {selectedTenantId 
+                    ? `Surveillance : ${establishments.find(e => e.id.toString() === selectedTenantId)?.name || 'Chargement...'}`
+                    : '🔐 PILOTAGE GLOBAL'}
+                </Button>
+                
+                {/* Mobile Icon Button */}
+                <Tooltip title={selectedTenantId ? 'Changer d\'école' : 'Pilotage Global'}>
+                  <IconButton
+                    onClick={handleTenantMenuOpen}
+                    sx={{ display: { xs: 'flex', md: 'none' }, bgcolor: 'primary.container', color: 'primary.main' }}
+                  >
+                    <SwapHorizIcon />
+                  </IconButton>
+                </Tooltip>
+
+                {/* Unified Context Menu */}
+                <Menu
+                  anchorEl={tenantAnchor}
+                  open={Boolean(tenantAnchor)}
+                  onClose={handleTenantMenuClose}
+                  PaperProps={{ 
+                    sx: { 
+                      minWidth: 280, 
+                      borderRadius: 3, 
+                      mt: 1.5,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+                    } 
+                  }}
+                >
+                  <MenuItem 
+                    onClick={() => { handleTenantChange(''); handleTenantMenuClose(); }} 
+                    selected={selectedTenantId === ''}
+                  >
+                    <ListItemText 
+                      primary="🌐 Vue Globale Plateforme" 
+                      secondary="Contrôle total sans filtre" 
+                    />
+                  </MenuItem>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="overline" sx={{ px: 2, color: 'text.secondary', fontWeight: 700 }}>
+                    Espaces Principaux
+                  </Typography>
+                  {establishments.map((estab) => (
+                    <MenuItem 
+                      key={estab.id} 
+                      onClick={() => { handleTenantChange(estab.id.toString()); handleTenantMenuClose(); }}
+                      selected={selectedTenantId === estab.id.toString()}
+                    >
+                      <ListItemText 
+                        primary={estab.name} 
+                        secondary={`Principal : ${estab.owner_name || estab.owner_username}`}
+                      />
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </Box>
+            )}
             <Tooltip title={currentMode === 'light' ? 'Mode sombre' : 'Mode clair'}>
               <IconButton onClick={toggleTheme} color="inherit">
                 {currentMode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Notifications">
-              <IconButton color="inherit" onClick={handleNotificationOpen}>
-                <Badge badgeContent={unreadCount} color="error">
-                  <NotificationsIcon />
-                </Badge>
-              </IconButton>
-            </Tooltip>
+            {!(isSuperAdmin && location.pathname.startsWith('/superadmin')) && (
+              <Tooltip title="Notifications">
+                <IconButton color="inherit" onClick={handleNotificationOpen}>
+                  <Badge badgeContent={unreadCount} color="error">
+                    <NotificationsIcon />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+            )}
 
             <Popover
               open={Boolean(notificationAnchor)}
@@ -553,6 +714,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
               borderRight: `1px solid ${theme.palette.divider}`,
               backgroundImage: 'none',
               bgcolor: 'background.default',
+              color: 'text.primary',
             },
           }}
           open
@@ -593,13 +755,40 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
           <BottomNavigation
             showLabels
             value={location.pathname}
-            onChange={(_, newValue) => navigate(newValue)}
-            sx={{ height: 64 }}
+            onChange={(_, newValue) => {
+              navigate(newValue);
+            }}
+            sx={{ height: 72, borderTop: 1, borderColor: 'divider' }}
           >
-            <BottomNavigationAction label="Stats" value="/dashboard" icon={<DashboardIcon />} />
-            <BottomNavigationAction label="Élèves" value="/students" icon={<PeopleIcon />} />
-            <BottomNavigationAction label="Finances" value="/finances/payments" icon={<AccountBalanceIcon />} />
-            <BottomNavigationAction label="Agenda" value="/agenda" icon={<CalendarIcon />} />
+            {isSuperAdmin && location.pathname.startsWith('/superadmin') ? (
+              adminNavItems.slice(0, 5).map((item) => (
+                <BottomNavigationAction 
+                  key={item.path} 
+                  label={item.label.split(' ')[0]} 
+                  value={item.path} 
+                  icon={item.icon} 
+                />
+              ))
+            ) : (
+              [
+                { label: 'Stats', value: '/dashboard', icon: <DashboardIcon /> },
+                { label: 'Élèves', value: '/students', icon: <PeopleIcon /> },
+                { label: 'Profs', value: '/teachers', icon: <PersonIcon /> },
+                { label: 'Finances', value: '/finances/payments', icon: <AccountBalanceIcon /> },
+                { label: 'Agenda', value: '/agenda', icon: <CalendarIcon /> }
+              ].map((item) => (
+                <BottomNavigationAction 
+                  key={item.value}
+                  label={item.label} 
+                  value={item.value} 
+                  icon={item.icon}
+                  sx={{ 
+                    minWidth: 'auto',
+                    '&.Mui-selected': { color: 'primary.main' }
+                  }}
+                />
+              ))
+            )}
           </BottomNavigation>
         </Paper>
       )}

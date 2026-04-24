@@ -12,6 +12,23 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        
+        # SAFETY: Never allow deleting the primary admin account
+        if instance.username == 'admin' or instance.is_superuser:
+            if not request.user.is_superuser:
+                 return response.Response({"error": "Vous n'avez pas les droits pour supprimer un SuperAdmin."}, status=status.HTTP_403_FORBIDDEN)
+            # Even for SuperAdmins, prevent deleting the ROOT admin to avoid lockout
+            if instance.username == 'admin':
+                return response.Response({"error": "Le compte SuperAdmin racine (admin) ne peut pas être supprimé pour des raisons de sécurité."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Log cascade warning if owner
+        if instance.role == 'admin' and instance.establishment:
+            print(f"CRITICAL: User {instance.username} being deleted. Cascading to establishment {instance.establishment.name}")
+
+        return super().destroy(request, *args, **kwargs)
+
     @decorators.action(detail=False, methods=['get', 'patch'])
     def me(self, request):
         if request.method == 'PATCH':
@@ -24,15 +41,44 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(request.user)
         return response.Response(serializer.data)
 
+    def perform_create(self, serializer):
+        # Auto-assign establishment to new staff
+        serializer.save(establishment=self.request.user.establishment)
+
     def get_serializer_class(self):
         if self.action == 'create':
             return SignUpSerializer
         return UserSerializer
 
     def get_queryset(self):
-        if self.request.user.role == 'admin':
-            return User.objects.all()
-        return User.objects.filter(id=self.request.user.id)
+        user = self.request.user
+        from tenants.models import get_current_tenant, is_tenant_bypassed
+        
+        # The 'admin' user (SuperAdmin) has dual-mode operation
+        if user.is_superuser or user.username == 'admin':
+            tenant = get_current_tenant()
+            if tenant and not is_tenant_bypassed():
+                # If impersonating a specific school, only show users of that school
+                return User.objects.filter(establishment=tenant)
+            # Default to seeing everything in global mode
+            return User.all_objects.all()
+        
+        # All members of an establishment can see other members in that same establishment
+        if user.establishment:
+            return User.objects.filter(establishment=user.establishment)
+        
+        return User.objects.filter(id=user.id)
+
+    @decorators.action(detail=False, methods=['get'])
+    def establishments(self, request):
+        if not (request.user.is_superuser or request.user.username == 'admin'):
+            return response.Response({"error": "Unauthorized"}, status=403)
+        
+        from tenants.models import Establishment
+        from tenants.serializers import EstablishmentSerializer
+        # Explicitly use all_objects to bypass any filters for SuperAdmin lists
+        estab_list = Establishment.objects.all()
+        return response.Response(EstablishmentSerializer(estab_list, many=True).data)
 
     @decorators.action(detail=False, methods=['post'], url_path='change-password')
     def change_password(self, request):
@@ -86,7 +132,10 @@ class LoginSerializer(TokenObtainPairSerializer):
             raise serializers.ValidationError({"detail": "Votre compte est verrouillé suite à trop de tentatives infructueuses. Contactez l'administrateur."})
 
         # Block non-admins during maintenance
-        config = SchoolConfiguration.objects.first()
+        config = None
+        if user and user.establishment:
+            config = SchoolConfiguration.all_objects.filter(establishment=user.establishment).first()
+            
         if config and config.maintenance_mode:
             if user and getattr(user, 'role', None) != 'admin':
                 raise serializers.ValidationError({
@@ -105,7 +154,10 @@ class LoginSerializer(TokenObtainPairSerializer):
                 user.failed_login_attempts += 1
                 user.last_failed_login = timezone.now()
                 
-                config = SchoolConfiguration.objects.first()
+                config = None
+                if user and user.establishment:
+                    config = SchoolConfiguration.all_objects.filter(establishment=user.establishment).first()
+                
                 if config and user.failed_login_attempts >= config.max_login_attempts:
                     user.is_locked = True
                 

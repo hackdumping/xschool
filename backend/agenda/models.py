@@ -1,6 +1,7 @@
 from django.db import models
+from tenants.models import TenantModel
 
-class CalendarEvent(models.Model):
+class CalendarEvent(TenantModel):
     EVENT_TYPE_CHOICES = (
         ('exam', 'Examen'),
         ('meeting', 'Réunion'),

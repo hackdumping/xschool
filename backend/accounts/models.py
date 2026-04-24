@@ -1,7 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-class User(AbstractUser):
+from tenants.models import TenantModel
+
+class User(AbstractUser, TenantModel):
     ROLE_CHOICES = (
         ('admin', 'Administrateur'),
         ('comptable', 'Comptable'),
@@ -9,6 +11,7 @@ class User(AbstractUser):
         ('professeur', 'Professeur'),
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='admin')
+    establishment = models.ForeignKey('tenants.Establishment', on_delete=models.CASCADE, related_name='users', null=True, blank=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     failed_login_attempts = models.IntegerField(default=0)
     last_failed_login = models.DateTimeField(null=True, blank=True)
@@ -17,7 +20,9 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
 
-class Notification(models.Model):
+from tenants.models import TenantModel
+
+class Notification(TenantModel):
     TYPES = (
         ('info', 'Information'),
         ('success', 'Succès'),
