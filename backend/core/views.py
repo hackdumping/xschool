@@ -355,8 +355,8 @@ class DataImportView(APIView):
 
         out = io.StringIO()
         try:
-            # Run loaddata on the temporary file with correct natural keys options
-            call_command('loaddata', tmp_path, stdout=out, use_natural_foreign_keys=True, use_natural_primary_keys=True)
+            # Run loaddata without extra natural keys flags as they are causing issues on this environment.
+            call_command('loaddata', tmp_path, stdout=out)
             result = out.getvalue()
             
             # Post-import verification counts
