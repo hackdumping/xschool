@@ -15,21 +15,21 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='expense',
             name='establishment',
-            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='payment',
             name='establishment',
-            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='trancheconfig',
             name='establishment',
-            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='tuitiontemplate',
             name='establishment',
-            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
     ]

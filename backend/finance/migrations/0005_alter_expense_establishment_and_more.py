@@ -17,22 +17,22 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='expense',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='payment',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='trancheconfig',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.AlterField(
             model_name='tuitiontemplate',
             name='establishment',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment'),
         ),
         migrations.CreateModel(
             name='TeacherPayment',
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 ('month', models.IntegerField()),
                 ('year', models.IntegerField()),
                 ('notes', models.TextField(blank=True, null=True)),
-                ('establishment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment')),
+                ('establishment', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tenants.establishment')),
                 ('recorded_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
             options={
