@@ -41,7 +41,6 @@ import {
 } from '@mui/icons-material';
 import { useEffect } from 'react';
 import { schoolService, financeService } from '@/services/api';
-import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { getCurrentAcademicYear } from '@/utils/academicYear';
