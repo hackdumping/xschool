@@ -55,7 +55,7 @@ class TenantManager(models.Manager):
         return queryset.none()
 
 class TenantModel(models.Model):
-    establishment = models.ForeignKey(Establishment, on_delete=models.CASCADE)
+    establishment = models.ForeignKey(Establishment, on_delete=models.CASCADE, null=True, blank=True)
     
     objects = TenantManager()
     # Also expose original manager if needed for admin

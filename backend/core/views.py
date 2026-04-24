@@ -328,10 +328,11 @@ class DataImportView(APIView):
 
         if clear_data:
             # Clear main application data to avoid integrity errors
-            from school.models import Student, Class, SchoolConfiguration
+            from school.models import Student, Class, SchoolConfiguration, SchoolYear
             from accounts.models import User
             from finance.models import Payment, Expense
             from agenda.models import CalendarEvent
+            from tenants.models import Establishment
             
             # Order matters for foreign keys
             CalendarEvent.objects.all().delete()
@@ -340,6 +341,10 @@ class DataImportView(APIView):
             Student.objects.all().delete()
             Class.objects.all().delete()
             User.objects.all().delete()
+            SchoolConfiguration.objects.all().delete()
+            # Shared models
+            Establishment.objects.all().delete()
+            SchoolYear.objects.all().delete()
             print("Database cleared as requested.")
 
         # Save uploaded file to a temporary location
