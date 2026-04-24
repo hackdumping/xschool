@@ -28,6 +28,12 @@ import { ReceiptPage } from '@/pages/Finances/ReceiptPage';
 import SuperDashboard from '@/pages/SuperAdmin/SuperDashboard';
 import { ProtectedRoute } from '@/components/Auth/ProtectedRoute';
 
+const RootRedirect = () => {
+  const { user } = useAuth();
+  const isSuperAdmin = (user as any)?.is_superuser || user?.username === 'admin';
+  return <Navigate to={isSuperAdmin ? "/superadmin/dashboard" : "/dashboard"} replace />;
+};
+
 function App() {
   const [mode, setMode] = useState<PaletteMode>(() => {
     return (localStorage.getItem('themeMode') as PaletteMode) || 'light';
@@ -51,7 +57,6 @@ function App() {
           <SchoolProvider>
             <NotificationProvider>
               <BrowserRouter>
-                {/* ... existing routes ... */}
                 <Routes>
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<SignUpPage />} />
@@ -62,7 +67,7 @@ function App() {
                       <ProtectedRoute>
                         <Layout toggleTheme={toggleTheme} currentMode={mode}>
                           <Routes>
-                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                            <Route path="/" element={<RootRedirect />} />
                             <Route path="/dashboard" element={<DashboardPage />} />
                             <Route path="/students" element={<StudentsPage />} />
                             <Route path="/classes" element={<ClassesPage />} />

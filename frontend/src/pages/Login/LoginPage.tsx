@@ -47,12 +47,15 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(username, password, rememberMe);
-      showNotification(`Bienvenue sur ${settings.name} !`, 'success');
       
-      // SuperAdmin redirection logic
+      // Determine if user is superadmin (either by username 'admin' or by is_superuser flag)
+      // Note: we check the state from the login response if possible, 
+      // but here we can just use the provided username since it's the main admin account.
       if (username === 'admin') {
-        navigate('/superadmin');
+        showNotification('Bienvenue SuperAdmin !', 'success');
+        navigate('/superadmin/dashboard');
       } else {
+        showNotification(`Bienvenue sur ${settings.name} !`, 'success');
         navigate('/dashboard');
       }
     } catch (err: any) {
