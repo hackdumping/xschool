@@ -276,7 +276,7 @@ const SignUpPage: React.FC = () => {
                         
                         <Grid container spacing={2} sx={{ mb: 4 }}>
                             {establishmentTypes.map((type) => (
-                                <Grid size={true} key={type.id}>
+                                <Grid size="grow" key={type.id}>
                                     <Card 
                                         sx={{ 
                                             borderRadius: 3,
