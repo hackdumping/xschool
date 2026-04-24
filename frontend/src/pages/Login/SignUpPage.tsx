@@ -274,37 +274,50 @@ const SignUpPage: React.FC = () => {
                             Vous pouvez choisir plusieurs options
                         </Typography>
                         
-                        <Grid container spacing={2} sx={{ mb: 4, justifyContent: 'center' }}>
+                        <Box sx={{ 
+                            mb: 4, 
+                            display: 'flex', 
+                            overflowX: { xs: 'auto', md: 'visible' },
+                            pb: { xs: 2, md: 0 },
+                            gap: 2,
+                            px: { xs: 1, md: 0 },
+                            // Hide scrollbar but keep functionality
+                            '&::-webkit-scrollbar': { display: 'none' },
+                            msOverflowStyle: 'none',
+                            scrollbarWidth: 'none',
+                            flexWrap: { xs: 'nowrap', md: 'wrap' },
+                            justifyContent: { xs: 'flex-start', md: 'center' }
+                        }}>
                             {establishmentTypes.map((type) => {
                                 const isSelected = formData.establishment_types.includes(type.id);
                                 return (
-                                    <Grid 
-                                        size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }} 
+                                    <Box 
                                         key={type.id}
-                                        sx={{ display: 'flex' }}
+                                        sx={{ 
+                                            minWidth: { xs: '200px', sm: '240px', md: 'calc(20% - 16px)' },
+                                            flexShrink: 0
+                                        }}
                                     >
                                         <Card 
                                             sx={{ 
-                                                width: '100%',
+                                                height: '100%',
                                                 borderRadius: 4,
                                                 border: `2px solid ${isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.1)}`,
                                                 bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.02) : 'background.paper',
                                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                transform: isSelected ? 'scale(1.02)' : 'none',
                                                 boxShadow: isSelected 
                                                     ? `0 12px 28px ${alpha(theme.palette.primary.main, 0.15)}` 
                                                     : `0 4px 12px ${alpha(theme.palette.common.black, 0.03)}`,
                                                 '&:hover': {
                                                     transform: 'translateY(-4px)',
                                                     borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.4),
-                                                    boxShadow: `0 12px 24px ${alpha(theme.palette.common.black, 0.08)}`
                                                 }
                                             }}
                                         >
                                             <CardActionArea 
                                                 onClick={() => toggleType(type.id)} 
                                                 sx={{ 
-                                                    p: { xs: 2.5, md: 3 }, 
+                                                    p: { xs: 2, md: 3 }, 
                                                     height: '100%', 
                                                     display: 'flex', 
                                                     flexDirection: 'column', 
@@ -313,47 +326,46 @@ const SignUpPage: React.FC = () => {
                                                 }}
                                             >
                                                 <Box sx={{ 
-                                                    width: 56,
-                                                    height: 56, 
-                                                    borderRadius: 4, 
+                                                    width: 48,
+                                                    height: 48, 
+                                                    borderRadius: 3, 
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     bgcolor: isSelected ? 'primary.main' : alpha(theme.palette.primary.main, 0.05),
                                                     color: isSelected ? 'white' : 'primary.main',
-                                                    mb: 2,
+                                                    mb: 1.5,
                                                     transition: '0.3s',
-                                                    position: 'relative',
-                                                    boxShadow: isSelected ? `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}` : 'none'
+                                                    position: 'relative'
                                                 }}>
                                                     {type.icon}
                                                     {isSelected && (
                                                         <Box sx={{ 
                                                             position: 'absolute', 
-                                                            top: -6, 
-                                                            right: -6, 
+                                                            top: -4, 
+                                                            right: -4, 
                                                             bgcolor: 'white', 
                                                             borderRadius: '50%', 
                                                             display: 'flex',
                                                             color: 'primary.main',
                                                             boxShadow: 1
                                                         }}>
-                                                            <CheckCircleIcon sx={{ fontSize: 20 }} />
+                                                            <CheckCircleIcon sx={{ fontSize: 16 }} />
                                                         </Box>
                                                     )}
                                                 </Box>
-                                                <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 0.5, lineHeight: 1.2 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 0.5, lineHeight: 1.1, fontSize: { xs: '0.8rem', md: '0.9rem' } }}>
                                                     {type.label}
                                                 </Typography>
-                                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.8 }}>
+                                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', fontWeight: 500, opacity: 0.7, display: { xs: 'none', sm: 'block' } }}>
                                                     {type.description}
                                                 </Typography>
                                             </CardActionArea>
                                         </Card>
-                                    </Grid>
+                                    </Box>
                                 );
                             })}
-                        </Grid>
+                        </Box>
 
                         <Box sx={{ display: 'flex', gap: 2 }}>
                             <Button
