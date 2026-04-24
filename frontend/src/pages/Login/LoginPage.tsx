@@ -65,7 +65,7 @@ export const LoginPage: React.FC = () => {
 
   return (
     <AuthLayout
-      title={settings.name}
+      title={settings.name || 'XSCHOOL'}
       subtitle="Connectez-vous à votre espace gestion"
     >
       {settings.maintenance_mode && (

@@ -126,7 +126,7 @@ const SuperDashboard: React.FC = () => {
   const fetchGlobalStats = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/admin/monitor/');
+      const response = await api.get('admin/monitor/');
       setData(response.data);
     } catch (error) {
       console.error('Error fetching global stats', error);

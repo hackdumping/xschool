@@ -86,11 +86,19 @@ class SignUpSerializer(serializers.ModelSerializer):
             user.establishment = establishment
             user.save()
 
-            # 4. Create initial school configuration for this tenant
+            # 4. Create initial school configuration for this tenant with establishment data
             from school.models import SchoolConfiguration
             SchoolConfiguration.objects.create(
                 establishment=establishment,
-                name=establishment_name
+                name=establishment_name,
+                email=validated_data.get('email'),
+                phone=validated_data.get('phone', '+237 ...'),
+                address=validated_data.get('address', 'Yaoundé, Cameroun'),
+                city='Yaoundé',
+                country='Cameroun',
+                english_name=f"{establishment_name} Institution",
+                director_title="Le Chef d'Établissement",
+                article_text=f"Décret N° 2026/001 du 01 Janvier 2026 portant création et ouverture de l'établissement {establishment_name}."
             )
 
         return user

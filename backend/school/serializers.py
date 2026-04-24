@@ -106,10 +106,10 @@ class SchoolConfigurationSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def update(self, instance, validated_data):
-        # Extract establishment data if present
+        # Extract establishment data if present (can be nested or flat depending on parser)
         establishment_data = validated_data.pop('establishment', {})
-        new_types = establishment_data.get('selected_types')
-        establishment_name = establishment_data.get('name')
+        new_types = establishment_data.get('selected_types') or validated_data.get('selected_types')
+        establishment_name = establishment_data.get('name') or validated_data.get('name') or validated_data.get('establishment_name')
         
         old_types = instance.establishment.selected_types or []
 
