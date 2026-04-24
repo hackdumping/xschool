@@ -9,6 +9,7 @@ import { m3Theme } from '@/theme/m3-theme';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SchoolProvider } from '@/contexts/SchoolContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Layout } from '@/components/Layout/Layout';
 import { LoginPage } from '@/pages/Login/LoginPage';
 import SignUpPage from '@/pages/Login/SignUpPage';
