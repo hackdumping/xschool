@@ -45,7 +45,7 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
-import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import type { GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
 import html2canvas from 'html2canvas';
 import { schoolService } from '@/services/api';
 import type { Student, PaymentStatus, Class } from '@/types';
@@ -414,7 +414,7 @@ export const StudentsPage: React.FC = () => {
   };
 
   const getSelectedIds = (): string[] => {
-    return selectedRows.map(id => String(id));
+    return selectedRows.map((id: string | number) => String(id));
   };
 
   const handleSendSMS = (student: Student) => {
