@@ -104,6 +104,22 @@ class SignUpSerializer(serializers.ModelSerializer):
 
         return user
 
+class StaffCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    firstName = serializers.CharField(source='first_name', required=False)
+    lastName = serializers.CharField(source='last_name', required=False)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password', 'firstName', 'lastName', 'role')
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
+
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification

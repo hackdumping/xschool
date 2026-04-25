@@ -47,7 +47,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'create':
-            return SignUpSerializer
+            if not self.request.user or not self.request.user.is_authenticated:
+                return SignUpSerializer
+            from .serializers import StaffCreateSerializer
+            return StaffCreateSerializer
         return UserSerializer
 
     def get_queryset(self):
