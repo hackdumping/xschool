@@ -217,6 +217,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
     }
   }, [isSuperAdmin]);
 
+  const visibleNavItems = (isSuperAdmin && location.pathname.startsWith('/superadmin') ? adminNavItems : navItems).filter(item => {
+    if (item.label === 'Paramètres') {
+      return user?.role === 'admin' || isSuperAdmin;
+    }
+    return true;
+  });
+
   const handleTenantChange = (id: string) => {
     if (id === '') {
       localStorage.removeItem('selectedTenantId');
@@ -285,7 +292,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
       <Divider sx={{ mx: 2 }} />
 
       <List sx={{ flex: 1, px: 1.5, py: 2 }}>
-          {(user?.username === 'admin' && location.pathname.startsWith('/superadmin') ? adminNavItems : navItems).map((item) => (
+          {visibleNavItems.map((item) => (
             <Box key={item.label}>
               {item.children ? (
                 <>
