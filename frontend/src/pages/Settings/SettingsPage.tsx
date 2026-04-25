@@ -119,6 +119,7 @@ export const SettingsPage: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [tuitionTemplates, setTuitionTemplates] = useState<TuitionTemplate[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [showCredsAlert, setShowCredsAlert] = useState(false);
 
   // Account deletion states
   const [openDeleteEstabDialog, setOpenDeleteEstabDialog] = useState(false);
@@ -169,8 +170,10 @@ export const SettingsPage: React.FC = () => {
     email: '',
     first_name: '',
     last_name: '',
-    password: '',
+    password: 'password123',
   });
+
+  const [staffCredentials, setStaffCredentials] = useState<{username: string, password: string} | null>(null);
 
   // Update local form data when global settings load
   React.useEffect(() => {
@@ -295,6 +298,10 @@ export const SettingsPage: React.FC = () => {
         role: 'professeur' // Default role as requested
       });
       showNotification('Membre ajouté avec succès', 'success');
+      setStaffCredentials({
+        username: staffData.username,
+        password: staffData.password
+      });
       setOpenAddDialog(false);
       fetchUsers();
       setStaffData({
@@ -302,7 +309,7 @@ export const SettingsPage: React.FC = () => {
         email: '',
         first_name: '',
         last_name: '',
-        password: '',
+        password: 'password123',
       });
     } catch (error: any) {
       const backendErrors = error.response?.data;
@@ -1580,6 +1587,51 @@ export const SettingsPage: React.FC = () => {
             disabled={deletingTemplate}
           >
             {deletingTemplate ? 'Suppression...' : 'Supprimer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Success Credentials Dialog */}
+      <Dialog 
+        open={!!staffCredentials} 
+        onClose={() => setStaffCredentials(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.main' }}>
+          Compte créé avec succès !
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" gutterBottom>
+            Voici les identifiants à transmettre au nouveau membre du personnel :
+          </Typography>
+          <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2, mt: 2, border: '1px dashed', borderColor: 'divider' }}>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography variant="caption" color="text.secondary">Identifiant (Username)</Typography>
+              <Typography variant="body1" fontWeight={700}>{staffCredentials?.username}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Mot de passe</Typography>
+              <Typography variant="body1" fontWeight={700}>{staffCredentials?.password}</Typography>
+            </Box>
+          </Box>
+          <Typography variant="caption" color="error.main" sx={{ mt: 2, display: 'block', fontWeight: 700 }}>
+            * Pensez à copier ces informations maintenant, elles ne seront plus affichées.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            fullWidth 
+            variant="contained" 
+            color="success" 
+            onClick={() => {
+              if (staffCredentials) {
+                navigator.clipboard.writeText(`Identifiant: ${staffCredentials.username}\nMot de passe: ${staffCredentials.password}`);
+                showNotification("Identifiants copiés dans le presse-papier", "success");
+              }
+              setStaffCredentials(null);
+            }}
+          >
+            Copier & Fermer
           </Button>
         </DialogActions>
       </Dialog>
