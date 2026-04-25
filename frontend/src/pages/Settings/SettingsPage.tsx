@@ -365,12 +365,31 @@ export const SettingsPage: React.FC = () => {
   const handleUpdateTemplate = async (template: TuitionTemplate) => {
     setSubmitting(true);
     try {
-      await financeService.updateTuitionTemplate(template.id, template);
+      // Clean template data to avoid NaN or invalid values
+      const cleanTemplate = {
+        name: template.name,
+        category: template.category,
+        registrationFee: Number(template.registrationFee) || 0,
+        tranche1: Number(template.tranche1) || 0,
+        tranche2: Number(template.tranche2) || 0,
+        tranche3: Number(template.tranche3) || 0,
+        materialFee: Number(template.materialFee) || 0,
+      };
+
+      await financeService.updateTuitionTemplate(template.id, cleanTemplate);
       showNotification('Grille tarifaire mise à jour', 'success');
       setEditingTemplate(null);
       fetchTuitionTemplates();
-    } catch (error) {
-      showNotification('Erreur lors de la mise à jour', 'error');
+    } catch (error: any) {
+      console.error('Update template error:', error);
+      const backendError = error.response?.data;
+      let message = 'Erreur lors de la mise à jour';
+      if (backendError && typeof backendError === 'object') {
+        message = Object.entries(backendError)
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+          .join(' | ');
+      }
+      showNotification(message, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -1383,7 +1402,7 @@ export const SettingsPage: React.FC = () => {
                   label="Frais d'Inscription"
                   type="number"
                   value={editingTemplate.registrationFee}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, registrationFee: parseInt(e.target.value) })}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, registrationFee: e.target.value })}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -1392,7 +1411,7 @@ export const SettingsPage: React.FC = () => {
                   label="Tranche 1"
                   type="number"
                   value={editingTemplate.tranche1}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, tranche1: parseInt(e.target.value) })}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, tranche1: e.target.value })}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -1401,7 +1420,7 @@ export const SettingsPage: React.FC = () => {
                   label="Tranche 2"
                   type="number"
                   value={editingTemplate.tranche2}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, tranche2: parseInt(e.target.value) })}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, tranche2: e.target.value })}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -1410,7 +1429,7 @@ export const SettingsPage: React.FC = () => {
                   label="Tranche 3"
                   type="number"
                   value={editingTemplate.tranche3}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, tranche3: parseInt(e.target.value) })}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, tranche3: e.target.value })}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -1419,7 +1438,7 @@ export const SettingsPage: React.FC = () => {
                   label="Matières d'Œuvre"
                   type="number"
                   value={editingTemplate.materialFee}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, materialFee: parseInt(e.target.value) })}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, materialFee: e.target.value })}
                 />
               </Grid>
             </Grid>
