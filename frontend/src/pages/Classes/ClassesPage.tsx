@@ -28,6 +28,7 @@ import {
   Tab,
   useTheme,
   alpha,
+  Autocomplete,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -584,31 +585,31 @@ export const ClassesPage: React.FC = () => {
             <Box sx={{ mt: 2 }}>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Nom de la classe</InputLabel>
-                    <Select
-                      value={formData.level}
-                      label="Nom de la classe"
-                      onChange={(e: any) => {
-                        const newLevel = e.target.value;
-                        // Auto-match tuition template
-                        const matchingTemplate = tuitionTemplates.find(t => t.name === newLevel && t.category === formData.category);
-                        setFormData({ 
-                          ...formData, 
-                          level: newLevel,
-                          tuitionTemplate: matchingTemplate ? matchingTemplate.id : formData.tuitionTemplate
-                        });
-                      }}
-                    >
-                      {LEVEL_MAPPING[formData.category]?.map(level => (
-                        <MenuItem key={level} value={level}>{level}</MenuItem>
-                      ))}
-                      {/* Safety: if current value is not in standard list, add it to avoid Select crash */}
-                      {formData.level && !LEVEL_MAPPING[formData.category]?.includes(formData.level) && (
-                        <MenuItem value={formData.level}>{formData.level} (Actuel)</MenuItem>
-                      )}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    freeSolo
+                    options={LEVEL_MAPPING[formData.category] || []}
+                    value={formData.level}
+                    onInputChange={(_, newValue) => {
+                      setFormData({ ...formData, level: newValue });
+                    }}
+                    onChange={(_, newValue) => {
+                      const newLevel = newValue as string;
+                      // Auto-match tuition template if it exists
+                      const matchingTemplate = tuitionTemplates.find(t => t.name === newLevel && t.category === formData.category);
+                      setFormData({ 
+                        ...formData, 
+                        level: newLevel || '',
+                        tuitionTemplate: matchingTemplate ? matchingTemplate.id : formData.tuitionTemplate
+                      });
+                    }}
+                    renderInput={(params) => (
+                      <TextField 
+                        {...params} 
+                        label="Nom de la classe (ex: 6ème A, 5ème B...)" 
+                        fullWidth 
+                      />
+                    )}
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>

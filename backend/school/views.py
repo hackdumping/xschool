@@ -21,11 +21,36 @@ class ClassViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         from tenants.models import get_current_tenant
+        from finance.models import TuitionTemplate
         tenant = get_current_tenant()
         school_year = serializer.validated_data.get('school_year')
+        
         if tenant and school_year and school_year.establishment != tenant:
             from rest_framework import serializers
             raise serializers.ValidationError({"schoolYear": "Cette année scolaire n'appartient pas à votre établissement."})
+        
+        # Automatic TuitionTemplate creation if missing
+        tuition_template = serializer.validated_data.get('tuition_template')
+        if not tuition_template:
+            level = serializer.validated_data.get('level')
+            category = serializer.validated_data.get('category', 'general')
+            
+            # Check for existing template for this level/category to avoid duplicates
+            # or create a new one with zero values
+            tuition_template, created = TuitionTemplate.objects.get_or_create(
+                name=level,
+                category=category,
+                establishment=tenant,
+                defaults={
+                    'registration_fee': 0,
+                    'tranche_1': 0,
+                    'tranche_2': 0,
+                    'tranche_3': 0,
+                    'material_fee': 0
+                }
+            )
+            serializer.validated_data['tuition_template'] = tuition_template
+            
         serializer.save(establishment=tenant)
 
     def perform_update(self, serializer):
