@@ -103,6 +103,8 @@ export const SettingsPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<any>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const isOwner = React.useMemo(() => {
@@ -257,6 +259,22 @@ export const SettingsPage: React.FC = () => {
       setTuitionTemplates(response.data);
     } catch (error) {
       showNotification('Erreur lors du chargement des tarifs', 'error');
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!templateToDelete) return;
+    setDeletingTemplate(true);
+    try {
+      await financeService.deleteTuitionTemplate(templateToDelete.id);
+      showNotification('Tarif supprimé avec succès', 'success');
+      setTemplateToDelete(null);
+      fetchTuitionTemplates();
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || "Erreur lors de la suppression. Ce tarif est probablement encore lié à une classe.";
+      showNotification(msg, 'error');
+    } finally {
+      setDeletingTemplate(false);
     }
   };
 
@@ -1097,13 +1115,23 @@ export const SettingsPage: React.FC = () => {
                             <td style={{ padding: '12px', textAlign: 'right' }}>{template.tranche3.toLocaleString()}</td>
                             <td style={{ padding: '12px', textAlign: 'right' }}>{template.materialFee.toLocaleString()}</td>
                             <td style={{ padding: '12px', textAlign: 'center' }}>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={() => setEditingTemplate(template)}
-                              >
-                                Éditer
-                              </Button>
+                              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => setEditingTemplate(template)}
+                                >
+                                  Éditer
+                                </Button>
+                                <IconButton 
+                                  size="small" 
+                                  color="error" 
+                                  onClick={() => setTemplateToDelete(template)}
+                                  sx={{ border: '1px solid', borderColor: 'error.light' }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
                             </td>
                           </tr>
                         ))}
@@ -1506,6 +1534,33 @@ export const SettingsPage: React.FC = () => {
         <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
           <Button onClick={() => setOpenDeleteEstabDialog(false)} color="inherit" disabled={deleting}>
             Annuler
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Template Confirmation Dialog */}
+      <Dialog 
+        open={!!templateToDelete} 
+        onClose={() => !deletingTemplate && setTemplateToDelete(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Supprimer ce tarif ?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Voulez-vous vraiment supprimer le tarif <strong>{templateToDelete?.name}</strong> ? 
+            Cette action ne sera pas possible si des élèves y sont déjà rattachés.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={() => setTemplateToDelete(null)} disabled={deletingTemplate}>Annuler</Button>
+          <Button 
+            variant="contained" 
+            color="error" 
+            onClick={handleDeleteTemplate}
+            disabled={deletingTemplate}
+          >
+            {deletingTemplate ? 'Suppression...' : 'Supprimer'}
           </Button>
         </DialogActions>
       </Dialog>

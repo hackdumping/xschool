@@ -65,6 +65,13 @@ class Class(TenantModel):
         if self.tuition_template:
             self.tuition_template.sync_classes()
 
+    def delete(self, *args, **kwargs):
+        template = self.tuition_template
+        super().delete(*args, **kwargs)
+        # If the template is now orphaned, remove it from Pricing/Tarif tab
+        if template and template.classes.count() == 0:
+            template.delete()
+
     @property
     def current_size(self):
         return self.students.filter(status='active').count()

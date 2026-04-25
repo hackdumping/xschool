@@ -207,6 +207,9 @@ export const ClassesPage: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'add'>('view');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<Class | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Dynamic tabs based on current school settings (not static user profile)
   const allowedTypes = settings.selected_types || ['general'];
@@ -283,15 +286,24 @@ export const ClassesPage: React.FC = () => {
     setOpenDialog(true);
   };
 
-  const handleDelete = async (classData: Class) => {
-    if (window.confirm(`Voulez-vous vraiment supprimer la classe ${classData.name} ?`)) {
-      try {
-        await schoolService.deleteClass(classData.id);
-        showNotification('Classe supprimée avec succès', 'success');
-        refreshData();
-      } catch (error) {
-        showNotification('Erreur lors de la suppression', 'error');
-      }
+  const handleDelete = (classData: Class) => {
+    setClassToDelete(classData);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!classToDelete) return;
+    setIsDeleting(true);
+    try {
+      await schoolService.deleteClass(classToDelete.id);
+      showNotification('Classe supprimée avec succès', 'success');
+      setDeleteDialogOpen(false);
+      setClassToDelete(null);
+      refreshData();
+    } catch (error) {
+      showNotification('Erreur lors de la suppression', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -681,6 +693,34 @@ export const ClassesPage: React.FC = () => {
           {(dialogMode === 'edit' || dialogMode === 'add') && (
             <Button variant="contained" onClick={handleSaveClass}>Enregistrer</Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog 
+        open={deleteDialogOpen} 
+        onClose={() => !isDeleting && setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Confirmer la suppression</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer la classe <strong>{classToDelete?.name}</strong> ? 
+            Cette action est irréversible et supprimera également sa grille tarifaire si elle n'est plus utilisée.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>Annuler</Button>
+          <Button 
+            variant="contained" 
+            color="error" 
+            onClick={confirmDelete}
+            loading={isDeleting}
+            disabled={isDeleting}
+          >
+            Supprimer
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

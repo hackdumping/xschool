@@ -225,7 +225,9 @@ export const financeService = {
     updateExpense: (id: string, data: any) => api.put(`expenses/${id}/`, data),
     deleteExpense: (id: string) => api.delete(`expenses/${id}/`),
     getTuitionTemplates: () => api.get('tuition-templates/'),
+    createTuitionTemplate: (data: any) => api.post('tuition-templates/', data),
     updateTuitionTemplate: (id: number, data: any) => api.patch(`tuition-templates/${id}/`, data),
+    deleteTuitionTemplate: (id: number) => api.delete(`tuition-templates/${id}/`),
     // Teacher Payments
     getTeacherPayments: (teacherId?: string | number) => api.get(`teacher-payments/${teacherId ? `?teacher_id=${teacherId}` : ''}`),
     createTeacherPayment: (data: any) => api.post('teacher-payments/', data),
