@@ -158,7 +158,7 @@ export const StudentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatus | ''>('');
-  const [selectedRows, setSelectedRows] = useState<any>({ type: 'include', ids: new Set() });
+  const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
   const [openBulkDeleteDialog, setOpenBulkDeleteDialog] = useState(false);
   const [bulkDeleteStep, setBulkDeleteStep] = useState(1);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
@@ -410,17 +410,11 @@ export const StudentsPage: React.FC = () => {
   };
 
   const getSelectedCount = () => {
-    if (selectedRows?.type === 'exclude') {
-      return filteredStudents.length - (selectedRows.ids?.size || 0);
-    }
-    return selectedRows?.ids?.size || 0;
+    return selectedRows.length;
   };
 
   const getSelectedIds = (): string[] => {
-    if (selectedRows?.type === 'exclude') {
-      return filteredStudents.filter(s => !selectedRows.ids.has(s.id)).map(s => s.id);
-    }
-    return Array.from(selectedRows?.ids || []) as string[];
+    return selectedRows.map(id => String(id));
   };
 
   const handleSendSMS = (student: Student) => {
@@ -429,7 +423,7 @@ export const StudentsPage: React.FC = () => {
 
   const handleBulkSMS = () => {
     showNotification(`SMS envoyé à ${getSelectedCount()} parents`, 'success');
-    setSelectedRows({ type: 'include', ids: new Set() } as any);
+    setSelectedRows([]);
   };
 
   const handleExport = () => {
@@ -444,9 +438,8 @@ export const StudentsPage: React.FC = () => {
   const handleExportData = () => {
     let dataToExport: Student[] = [];
     if (exportScope === 'selected') {
-      dataToExport = filteredStudents.filter(s => 
-        Array.isArray(selectedRows) && selectedRows.includes(s.id)
-      );
+      const selectedIds = getSelectedIds();
+      dataToExport = studentsList.filter(s => selectedIds.includes(s.id));
     } else if (exportScope === 'filtered') {
       dataToExport = filteredStudents;
     } else {
