@@ -17,7 +17,7 @@ class ClassSerializer(serializers.ModelSerializer):
     categoryDisplay = serializers.CharField(source='get_category_display', read_only=True)
     isExam = serializers.BooleanField(source='is_exam')
     maxSize = serializers.IntegerField(source='max_size')
-    schoolYear = serializers.PrimaryKeyRelatedField(source='school_year', queryset=SchoolYear.all_objects.all())
+    schoolYear = serializers.PrimaryKeyRelatedField(source='school_year', queryset=SchoolYear.all_objects.all(), required=False, allow_null=True)
     tuitionTemplate = serializers.PrimaryKeyRelatedField(source='tuition_template', queryset=Class.all_objects.model.tuition_template.field.related_model.all_objects.all(), required=False, allow_null=True)
     tranches = TrancheSerializer(many=True, read_only=True)
 

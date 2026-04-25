@@ -327,7 +327,7 @@ export const ClassesPage: React.FC = () => {
         name: formData.level, // Sync name with level for consistency
         level: formData.level,
         maxSize: formData.maxSize,
-        schoolYear: resolvedYearId,
+        schoolYear: typeof resolvedYearId === 'number' ? resolvedYearId : null,
         category: formData.category,
         tuitionTemplate: formData.tuitionTemplate || null,
         isExam: formData.isExam,
