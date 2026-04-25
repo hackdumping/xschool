@@ -158,7 +158,7 @@ export const StudentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatus | ''>('');
-  const [selectedRows, setSelectedRows] = useState<(string | number)[]>([]);
+  const [selectedRows, setSelectedRows] = useState<any>({ type: 'include', ids: new Set() });
   const [openBulkDeleteDialog, setOpenBulkDeleteDialog] = useState(false);
   const [bulkDeleteStep, setBulkDeleteStep] = useState(1);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
@@ -410,11 +410,17 @@ export const StudentsPage: React.FC = () => {
   };
 
   const getSelectedCount = () => {
-    return selectedRows.length;
+    if (selectedRows?.type === 'exclude') {
+      return filteredStudents.length - (selectedRows.ids?.size || 0);
+    }
+    return selectedRows?.ids?.size || 0;
   };
 
   const getSelectedIds = (): string[] => {
-    return selectedRows.map((id: string | number) => String(id));
+    if (selectedRows?.type === 'exclude') {
+      return filteredStudents.filter(s => !selectedRows.ids.has(s.id)).map(s => s.id);
+    }
+    return Array.from(selectedRows?.ids || []) as string[];
   };
 
   const handleSendSMS = (student: Student) => {
@@ -438,8 +444,12 @@ export const StudentsPage: React.FC = () => {
   const handleExportData = () => {
     let dataToExport: Student[] = [];
     if (exportScope === 'selected') {
-      const selectedIds = getSelectedIds();
-      dataToExport = studentsList.filter(s => selectedIds.includes(s.id));
+      const selectedIdSet = selectedRows.ids instanceof Set ? selectedRows.ids : new Set(selectedRows.ids || []);
+      if (selectedRows.type === 'exclude') {
+        dataToExport = filteredStudents.filter(s => !selectedIdSet.has(s.id));
+      } else {
+        dataToExport = studentsList.filter(s => selectedIdSet.has(s.id));
+      }
     } else if (exportScope === 'filtered') {
       dataToExport = filteredStudents;
     } else {
