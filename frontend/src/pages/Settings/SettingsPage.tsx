@@ -119,7 +119,6 @@ export const SettingsPage: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [tuitionTemplates, setTuitionTemplates] = useState<TuitionTemplate[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  const [showCredsAlert, setShowCredsAlert] = useState(false);
 
   // Account deletion states
   const [openDeleteEstabDialog, setOpenDeleteEstabDialog] = useState(false);
