@@ -45,7 +45,7 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
-import type { GridColDef, GridRenderCellParams, GridRowSelectionModel } from '@mui/x-data-grid';
+import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import html2canvas from 'html2canvas';
 import { schoolService } from '@/services/api';
 import type { Student, PaymentStatus, Class } from '@/types';
@@ -158,7 +158,7 @@ export const StudentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatus | ''>('');
-  const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
+  const [selectedRows, setSelectedRows] = useState<(string | number)[]>([]);
   const [openBulkDeleteDialog, setOpenBulkDeleteDialog] = useState(false);
   const [bulkDeleteStep, setBulkDeleteStep] = useState(1);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
