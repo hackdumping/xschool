@@ -3,8 +3,11 @@ from tenants.models import TenantModel
 
 class TuitionTemplate(TenantModel):
     CATEGORY_CHOICES = (
+        ('garderie', 'Garderie'),
+        ('primaire', 'École Primaire'),
         ('general', 'Enseignement Général'),
         ('technique', 'Enseignement Technique'),
+        ('formation', 'Centre de formation'),
     )
     name = models.CharField(max_length=100) # e.g. "6ème & 5ème"
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
