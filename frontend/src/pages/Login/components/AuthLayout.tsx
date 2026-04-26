@@ -6,7 +6,6 @@ import {
     alpha,
     useTheme,
     Typography,
-    Avatar,
 } from '@mui/material';
 import { useSchool } from '@/contexts/SchoolContext';
 
