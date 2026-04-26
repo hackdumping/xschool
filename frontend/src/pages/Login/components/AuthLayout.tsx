@@ -51,18 +51,28 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitl
                     <Box sx={{ p: { xs: 3, sm: 6 } }}>
                         {/* Header Section */}
                         <Box sx={{ textAlign: 'center', mb: 4 }}>
-                            <Avatar
-                                src={settings.logo || '/logo.png'}
+                            <Box
                                 sx={{
                                     width: 140,
                                     height: 140,
-                                    backgroundColor: 'background.paper',
                                     mx: 'auto',
                                     mb: 3,
-                                    boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
-                                    p: 0.5
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}
-                            />
+                            >
+                                <Box 
+                                    component="img"
+                                    src={settings.logo || '/logo.png'}
+                                    alt="Logo"
+                                    sx={{
+                                        maxWidth: '100%',
+                                        maxHeight: '100%',
+                                        objectFit: 'contain'
+                                    }}
+                                />
+                            </Box>
                             <Typography
                                 variant="h3"
                                 sx={{

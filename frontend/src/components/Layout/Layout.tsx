@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   Box,
   Drawer,
@@ -753,16 +753,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
             bottom: 0,
             left: 0,
             right: 0,
-            zIndex: theme.zIndex.appBar + 1
+            zIndex: 9999,
+            backgroundColor: 'background.paper',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.1)'
           }}
           elevation={3}
         >
           <BottomNavigation
             showLabels
             value={location.pathname}
-            onChange={(_, newValue) => {
-              navigate(newValue);
-            }}
             sx={{ height: 72, borderTop: 1, borderColor: 'divider' }}
           >
             {isSuperAdmin && location.pathname.startsWith('/superadmin') ? (
@@ -771,7 +770,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
                   key={item.path} 
                   label={item.label.split(' ')[0]} 
                   value={item.path} 
-                  icon={item.icon} 
+                  icon={item.icon}
+                  onClick={() => {
+                    window.location.href = item.path!;
+                  }}
+                  sx={{ 
+                    minWidth: 'auto',
+                    cursor: 'pointer',
+                    '&.Mui-selected': { color: 'primary.main' }
+                  }}
                 />
               ))
             ) : (
@@ -787,8 +794,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
                   label={item.label} 
                   value={item.value} 
                   icon={item.icon}
+                  onClick={() => {
+                    window.location.href = item.value;
+                  }}
                   sx={{ 
                     minWidth: 'auto',
+                    cursor: 'pointer',
                     '&.Mui-selected': { color: 'primary.main' }
                   }}
                 />
