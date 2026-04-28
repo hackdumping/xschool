@@ -145,7 +145,7 @@ export const FinancialSummaryPage: React.FC = () => {
 
         XLSX.writeFile(wb, `${filename}.xlsx`);
       } else if (exportFormat === 'pdf') {
-        const doc = new jsPDF();
+        const doc = new jsPDF('p', 'mm', 'a4');
         const startY = addProfessionalHeader(doc, settings, `BILAN FINANCIER GLOBAL`);
 
         // Summary Block
@@ -202,7 +202,50 @@ export const FinancialSummaryPage: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    // We generate the PDF exactly like the export to ensure pixel-perfect matching with the student list,
+    // avoiding native browser CSS print limitations.
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const startY = addProfessionalHeader(doc, settings, `BILAN FINANCIER GLOBAL`);
+
+    // Data for Global Stats
+    const summaryData = [
+      { 'Libellé': 'Total Revenus', 'Valeur': `${formatAmount(globalTotals.totalPaid)} ${settings.currency_symbol}` },
+      { 'Libellé': 'Total Dépenses', 'Valeur': `${formatAmount(globalTotals.totalExpenses)} ${settings.currency_symbol}` },
+      { 'Libellé': 'Solde', 'Valeur': `${formatAmount(globalTotals.balance)} ${settings.currency_symbol}` },
+      { 'Libellé': 'Montant Global Attendu', 'Valeur': `${formatAmount(globalTotals.totalExpected)} ${settings.currency_symbol}` },
+      { 'Libellé': 'Taux de Recouvrement Global', 'Valeur': `${globalTotals.recoveryRate.toFixed(1)}%` }
+    ];
+
+    // Summary Block
+    doc.setFontSize(14);
+    doc.text('Résumé Global', 14, startY + 10);
+    autoTable(doc, {
+      startY: startY + 15,
+      head: [['Indicateur', 'Valeur']],
+      body: summaryData.map(item => [item.Libellé, item.Valeur]),
+      theme: 'striped',
+      headStyles: { fillColor: [25, 118, 210] }
+    });
+
+    // Details Block
+    doc.text('Détails par Classe', 14, (doc as any).lastAutoTable.finalY + 15);
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 20,
+      head: [['Classe', 'Effectif', 'Attendu', 'Payé', 'Reste', 'Taux']],
+      body: classSummaries.map(s => [
+        s.className,
+        s.studentCount,
+        formatAmount(s.totalExpected),
+        formatAmount(s.totalPaid),
+        formatAmount(s.totalRemaining),
+        `${s.recoveryRate.toFixed(1)}%`
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [25, 118, 210] }
+    });
+
+    doc.autoPrint();
+    window.open(URL.createObjectURL(doc.output('blob')), '_blank');
   };
 
   if (loading) return <LinearProgress />;
@@ -239,30 +282,7 @@ export const FinancialSummaryPage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Print-only Header (Premium Institutional Style) */}
-      <Box sx={{ display: 'none', displayPrint: 'block', mb: 4 }}>
-        <Grid container alignItems="center" spacing={2}>
-          <Grid size={{ xs: 3 }}>
-            <Box sx={{ width: 80, height: 80, bgcolor: 'primary.main', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <SchoolIcon sx={{ fontSize: 48, color: 'white' }} />
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6 }}>
-            <Typography variant="h5" fontWeight="bold" align="center" color="primary" sx={{ textTransform: 'uppercase' }}>{settings.establishment_name || settings.name}</Typography>
-            <Typography variant="subtitle2" align="center">{settings.slogan || "L'excellence au service de l'éducation"}</Typography>
-            <Typography variant="body2" align="center" color="text.secondary">Contact: {settings.phone} | Email: {settings.email}</Typography>
-            <Typography variant="caption" align="center" display="block" color="text.secondary">{settings.address}</Typography>
-          </Grid>
-          <Grid size={{ xs: 3 }}>
-            <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="caption" display="block">Document :</Typography>
-              <Typography variant="body2" fontWeight="bold">BILAN FINANCIER GLOBAL</Typography>
-              <Typography variant="caption" display="block">{new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</Typography>
-            </Box>
-          </Grid>
-        </Grid>
-        <Box sx={{ borderBottom: '2px solid', borderColor: 'primary.main', mt: 2 }} />
-      </Box>
+      {/* We removed the JSX displayPrint block to exclusively use precise jsPDF generation for printing */}
 
       {/* Main Stats with specialized Print formatting */}
       <Grid container spacing={2} sx={{ mb: 4 }}>

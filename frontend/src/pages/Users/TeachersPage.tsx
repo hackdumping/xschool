@@ -55,6 +55,8 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { FileDownload as FileDownloadIcon, FilterList as FilterListIcon } from '@mui/icons-material';
 import { addProfessionalHeader } from '@/utils/pdfHeader';
+import { FastTextField } from '@/components/common/FastTextField';
+
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -373,7 +375,7 @@ export const TeachersPage: React.FC = () => {
   const handleDownloadPayslip = () => {
     if (!selectedTeacher || !schoolSettings) return;
 
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.width;
     const now = new Date();
     const monthNames = ["JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE"];
@@ -381,19 +383,14 @@ export const TeachersPage: React.FC = () => {
     const currentYear = now.getFullYear();
 
     // Header (Professional School Header)
-    addProfessionalHeader(doc, schoolSettings, `BULLETIN DE PAIE - ${currentMonth} ${currentYear}`);
-
-    // Document Title
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`BULLETIN DE PAIE - ${currentMonth} ${currentYear}`, pageWidth / 2, 55, { align: 'center' });
+    const startY = addProfessionalHeader(doc, schoolSettings, `BULLETIN DE PAIE - ${currentMonth} ${currentYear}`);
 
     // Employee Detail Section
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Enseignant: ${(selectedTeacher.lastName || '').toUpperCase()} ${selectedTeacher.firstName || ''}`, 20, 70);
-    doc.text(`Matricule: ${selectedTeacher.matricule}`, 20, 77);
-    doc.text(`Date d'émission: ${now.toLocaleDateString()}`, pageWidth - 20, 77, { align: 'right' });
+    doc.setFont('times', 'normal');
+    doc.text(`Enseignant: ${(selectedTeacher.lastName || '').toUpperCase()} ${selectedTeacher.firstName || ''}`, 20, startY + 5);
+    doc.text(`Matricule: ${selectedTeacher.matricule}`, 20, startY + 12);
+    doc.text(`Date d'émission: ${now.toLocaleDateString()}`, pageWidth - 20, startY + 12, { align: 'right' });
 
     // Prepare Financial Table Data
     const tableData = [
@@ -408,7 +405,7 @@ export const TeachersPage: React.FC = () => {
     const totalDeductions = selectedTeacher.baseSalary - selectedTeacher.amountToPay;
 
     autoTable(doc, {
-      startY: 85,
+      startY: startY + 25,
       head: [['Désignation', 'Gains (FCFA)', 'Retenues (FCFA)']],
       body: tableData,
       theme: 'striped',
@@ -455,22 +452,17 @@ export const TeachersPage: React.FC = () => {
         return;
       }
 
-      const doc = new jsPDF();
+      const doc = new jsPDF('p', 'mm', 'a4');
       const pageWidth = doc.internal.pageSize.width;
       
-      // Header
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.text((schoolSettings.establishment_name || schoolSettings.name || 'XSCHOOL').toUpperCase(), pageWidth / 2, 20, { align: 'center' });
-      
-      doc.setFontSize(14);
-      doc.text(`BILAN ANNUEL DES PAIEMENTS - ANNÉE ${new Date().getFullYear()}`, pageWidth / 2, 35, { align: 'center' });
+      // Header (Standardized Professional Header)
+      const startY = addProfessionalHeader(doc, schoolSettings, `BILAN ANNUEL DES PAIEMENTS - ${new Date().getFullYear()}`);
       
       doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Enseignant: ${teacher.lastName.toUpperCase()} ${teacher.firstName}`, 20, 50);
-      doc.text(`Matricule: ${teacher.matricule}`, 20, 57);
-      doc.text(`Date de génération: ${new Date().toLocaleDateString()}`, pageWidth - 20, 57, { align: 'right' });
+      doc.setFont('times', 'normal');
+      doc.text(`Enseignant: ${teacher.lastName.toUpperCase()} ${teacher.firstName}`, 20, startY + 5);
+      doc.text(`Matricule: ${teacher.matricule}`, 20, startY + 12);
+      doc.text(`Date de génération: ${new Date().toLocaleDateString()}`, pageWidth - 20, startY + 12, { align: 'right' });
 
       const tableData = payments.map((p: any) => [
         new Date(2000, p.month - 1).toLocaleString('fr-FR', { month: 'long' }).toUpperCase(),
@@ -483,7 +475,7 @@ export const TeachersPage: React.FC = () => {
       const totalPaid = payments.reduce((acc: number, curr: any) => acc + Number(curr.amount_paid), 0);
 
       autoTable(doc, {
-        startY: 65,
+        startY: startY + 20,
         head: [['MOIS', 'BRUT (XAF)', 'RETENUES (XAF)', 'NET PERÇU (XAF)', 'DATE PAIEMENT']],
         body: tableData,
         theme: 'grid',
@@ -572,7 +564,7 @@ export const TeachersPage: React.FC = () => {
     }
   };
 
-  const columns: GridColDef[] = [
+  const columns: GridColDef[] = React.useMemo(() => [
     { field: 'matricule', headerName: 'Matricule', width: 120, hideable: false },
     {
       field: 'name',
@@ -645,7 +637,7 @@ export const TeachersPage: React.FC = () => {
         </IconButton>
       ),
     },
-  ];
+  ], [theme]);
 
   return (
     <Box>
@@ -708,7 +700,7 @@ export const TeachersPage: React.FC = () => {
           <CardContent sx={{ p: { xs: 2, md: 3 } }}>
             <Grid container spacing={2} alignItems="center">
               <Grid size={{ xs: 12, md: 5 }}>
-                <TextField
+                <FastTextField
                   fullWidth
                   placeholder="Rechercher (Nom, matricule...)"
                   value={searchQuery}
@@ -952,22 +944,22 @@ export const TeachersPage: React.FC = () => {
           <Box sx={{ p: 1 }}>
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth label="Prénom" value={teacherForm.firstName} onChange={(e) => setTeacherForm({ ...teacherForm, firstName: e.target.value })} />
+                <FastTextField fullWidth label="Prénom" value={teacherForm.firstName} onChange={(e) => setTeacherForm({ ...teacherForm, firstName: e.target.value })} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth label="Nom" value={teacherForm.lastName} onChange={(e) => setTeacherForm({ ...teacherForm, lastName: e.target.value })} />
+                <FastTextField fullWidth label="Nom" value={teacherForm.lastName} onChange={(e) => setTeacherForm({ ...teacherForm, lastName: e.target.value })} />
               </Grid>
               <Grid size={{ xs: 12, sm: 12 }}>
-                <TextField fullWidth label="Matricule" value={teacherForm.matricule} onChange={(e) => setTeacherForm({ ...teacherForm, matricule: e.target.value })} />
+                <FastTextField fullWidth label="Matricule" value={teacherForm.matricule} onChange={(e) => setTeacherForm({ ...teacherForm, matricule: e.target.value })} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth label="Email" value={teacherForm.email} onChange={(e) => setTeacherForm({ ...teacherForm, email: e.target.value })} />
+                <FastTextField fullWidth label="Email" value={teacherForm.email} onChange={(e) => setTeacherForm({ ...teacherForm, email: e.target.value })} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth label="Téléphone" value={teacherForm.phone} onChange={(e) => setTeacherForm({ ...teacherForm, phone: e.target.value })} />
+                <FastTextField fullWidth label="Téléphone" value={teacherForm.phone} onChange={(e) => setTeacherForm({ ...teacherForm, phone: e.target.value })} />
               </Grid>
               <Grid size={{ xs: 12, sm: 12 }}>
-                <TextField fullWidth label="Salaire de Base" type="number" value={teacherForm.baseSalary} onChange={(e) => setTeacherForm({ ...teacherForm, baseSalary: Number(e.target.value) })} />
+                <FastTextField fullWidth label="Salaire de Base" type="number" value={teacherForm.baseSalary} onChange={(e) => setTeacherForm({ ...teacherForm, baseSalary: Number(e.target.value) })} />
               </Grid>
             </Grid>
           </Box>
@@ -983,8 +975,8 @@ export const TeachersPage: React.FC = () => {
         <DialogTitle>{selectedSanctionType ? 'Modifier Sanction' : 'Nouveau Motif'}</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ mt: 1 }}>
-            <TextField fullWidth label="Dénomination" value={sanctionTypeForm.name} onChange={(e) => setSanctionTypeForm({ ...sanctionTypeForm, name: e.target.value })} sx={{ mb: 2 }} />
-            <TextField fullWidth label="Montant Retenue (FCFA)" type="number" value={sanctionTypeForm.default_amount} onChange={(e) => setSanctionTypeForm({ ...sanctionTypeForm, default_amount: Number(e.target.value) })} />
+            <FastTextField fullWidth label="Dénomination" value={sanctionTypeForm.name} onChange={(e) => setSanctionTypeForm({ ...sanctionTypeForm, name: e.target.value })} sx={{ mb: 2 }} />
+            <FastTextField fullWidth label="Montant Retenue (FCFA)" type="number" value={sanctionTypeForm.default_amount} onChange={(e) => setSanctionTypeForm({ ...sanctionTypeForm, default_amount: Number(e.target.value) })} />
           </Box>
         </DialogContent>
         <DialogActions>

@@ -146,6 +146,8 @@ const printStyles = `
   }
 `;
 
+import { FastTextField } from '@/components/common/FastTextField';
+
 export const StudentsPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -260,9 +262,143 @@ export const StudentsPage: React.FC = () => {
   }, [searchQuery, selectedClass, selectedStatus, studentsList]);
 
   // Get student class name
-  const getClassName = (classId: string) => {
+  const getClassName = React.useCallback((classId: string) => {
     return classesList.find(c => c.id === classId)?.name || 'N/A';
-  };
+  }, [classesList]);
+
+  const columns: GridColDef<Student>[] = React.useMemo(() => [
+    {
+      field: 'matricule',
+      headerName: 'Matricule',
+      width: 120,
+      renderCell: (params: GridRenderCellParams<Student>) => (
+        <Typography variant="body2" fontWeight={500}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'name',
+      headerName: 'Nom',
+      flex: 1,
+      minWidth: 200,
+      valueGetter: (_value, row) => `${row.lastName} ${row.firstName}`,
+      renderCell: (params: GridRenderCellParams<Student>) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>
+            {params.row.lastName.charAt(0)}{params.row.firstName.charAt(0)}
+          </Avatar>
+          <Box>
+            <Typography variant="body2" fontWeight={500}>
+              {params.row.lastName} {params.row.firstName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {params.row.parentPhone}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'classId',
+      headerName: 'Classe',
+      width: 100,
+      valueGetter: (_value, row) => getClassName(row.classId),
+    },
+    {
+      field: 'gender',
+      headerName: 'Genre',
+      width: 80,
+      renderCell: (params: GridRenderCellParams<Student>) => (
+        <Chip
+          size="small"
+          label={params.value === 'M' ? 'Garçon' : 'Fille'}
+          color={params.value === 'M' ? 'primary' : 'secondary'}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'isRepeating',
+      headerName: 'Statut',
+      width: 120,
+      renderCell: (params: GridRenderCellParams<Student>) => (
+        <Chip
+          size="small"
+          label={params.value ? 'Redoublant' : 'Non redoublant'}
+          color={params.value ? 'warning' : 'info'}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'totalPaid',
+      headerName: 'Payé',
+      width: 110,
+      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
+    },
+    {
+      field: 'totalDue',
+      headerName: 'Total Dû',
+      width: 110,
+      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
+    },
+    {
+      field: 'balance',
+      headerName: 'Reste',
+      width: 110,
+      valueGetter: (_value, row) => (Number(row.totalDue) || 0) - (Number(row.totalPaid) || 0),
+      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
+      renderCell: (params: GridRenderCellParams<Student>) => {
+        const balance = (Number(params.row.totalDue) || 0) - (Number(params.row.totalPaid) || 0);
+        return (
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 'bold', color: balance > 0 ? 'error.main' : 'success.main' }}
+          >
+            {balance.toLocaleString()} FCFA
+          </Typography>
+        );
+      }
+    },
+    {
+      field: 'paymentStatus',
+      headerName: 'Statut Paiement',
+      width: 130,
+      renderCell: (params: GridRenderCellParams<Student>) => (
+        <Chip
+          size="small"
+          label={getStatusLabel(params.row.paymentStatus)}
+          color={getStatusColor(params.row.paymentStatus) as 'success' | 'warning' | 'error' | 'default'}
+        />
+      ),
+    },
+    {
+      field: 'parentName',
+      headerName: 'Parent/Tuteur',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 120,
+      sortable: false,
+      filterable: false,
+      renderCell: (params: GridRenderCellParams<Student>) => (
+        <Box>
+          <Tooltip title="Voir détails">
+            <IconButton size="small" onClick={() => handleViewStudent(params.row)}>
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <IconButton size="small" onClick={(e) => handleMenuOpen(e, params.row)}>
+            <MoreVertIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      ),
+    },
+  ], [getClassName]);
 
   if (loading) {
     return (
@@ -582,139 +718,6 @@ export const StudentsPage: React.FC = () => {
     setMenuStudent(null);
   };
 
-  const columns: GridColDef<Student>[] = [
-    {
-      field: 'matricule',
-      headerName: 'Matricule',
-      width: 120,
-      renderCell: (params: GridRenderCellParams<Student>) => (
-        <Typography variant="body2" fontWeight={500}>
-          {params.value}
-        </Typography>
-      ),
-    },
-    {
-      field: 'name',
-      headerName: 'Nom',
-      flex: 1,
-      minWidth: 200,
-      valueGetter: (_value, row) => `${row.lastName} ${row.firstName}`,
-      renderCell: (params: GridRenderCellParams<Student>) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>
-            {params.row.lastName.charAt(0)}{params.row.firstName.charAt(0)}
-          </Avatar>
-          <Box>
-            <Typography variant="body2" fontWeight={500}>
-              {params.row.lastName} {params.row.firstName}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {params.row.parentPhone}
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      field: 'classId',
-      headerName: 'Classe',
-      width: 100,
-      valueGetter: (_value, row) => getClassName(row.classId),
-    },
-    {
-      field: 'gender',
-      headerName: 'Genre',
-      width: 80,
-      renderCell: (params: GridRenderCellParams<Student>) => (
-        <Chip
-          size="small"
-          label={params.value === 'M' ? 'Garçon' : 'Fille'}
-          color={params.value === 'M' ? 'primary' : 'secondary'}
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      field: 'isRepeating',
-      headerName: 'Statut',
-      width: 120,
-      renderCell: (params: GridRenderCellParams<Student>) => (
-        <Chip
-          size="small"
-          label={params.value ? 'Redoublant' : 'Non redoublant'}
-          color={params.value ? 'warning' : 'info'}
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      field: 'totalPaid',
-      headerName: 'Payé',
-      width: 110,
-      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
-    },
-    {
-      field: 'totalDue',
-      headerName: 'Total Dû',
-      width: 110,
-      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
-    },
-    {
-      field: 'balance',
-      headerName: 'Reste',
-      width: 110,
-      valueGetter: (_value, row) => (Number(row.totalDue) || 0) - (Number(row.totalPaid) || 0),
-      valueFormatter: (value: any) => `${(Number(value) || 0).toLocaleString()} FCFA`,
-      renderCell: (params: GridRenderCellParams<Student>) => {
-        const balance = (Number(params.row.totalDue) || 0) - (Number(params.row.totalPaid) || 0);
-        return (
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 'bold', color: balance > 0 ? 'error.main' : 'success.main' }}
-          >
-            {balance.toLocaleString()} FCFA
-          </Typography>
-        );
-      }
-    },
-    {
-      field: 'paymentStatus',
-      headerName: 'Statut Paiement',
-      width: 130,
-      renderCell: (params: GridRenderCellParams<Student>) => (
-        <Chip
-          size="small"
-          label={getStatusLabel(params.row.paymentStatus)}
-          color={getStatusColor(params.row.paymentStatus) as 'success' | 'warning' | 'error' | 'default'}
-        />
-      ),
-    },
-    {
-      field: 'parentName',
-      headerName: 'Parent/Tuteur',
-      flex: 1,
-      minWidth: 150,
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      sortable: false,
-      filterable: false,
-      renderCell: (params: GridRenderCellParams<Student>) => (
-        <Box>
-          <Tooltip title="Voir détails">
-            <IconButton size="small" onClick={() => handleViewStudent(params.row)}>
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <IconButton size="small" onClick={(e) => handleMenuOpen(e, params.row)}>
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      ),
-    },
-  ];
 
   return (
     <Box sx={{ p: { xs: 1, sm: 3 } }}>
@@ -1050,7 +1053,7 @@ export const StudentsPage: React.FC = () => {
             </Grid>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ pb: { xs: 12, sm: 2 }, px: 3 }}>
           <Button onClick={() => setOpenDialog(false)}>Fermer</Button>
           <Button
             variant="contained"
@@ -1069,7 +1072,7 @@ export const StudentsPage: React.FC = () => {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Nom"
                 value={studentForm.lastName}
@@ -1078,7 +1081,7 @@ export const StudentsPage: React.FC = () => {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Prénom"
                 value={studentForm.firstName}
@@ -1087,7 +1090,7 @@ export const StudentsPage: React.FC = () => {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Matricule"
                 value={studentForm.matricule}
@@ -1139,7 +1142,7 @@ export const StudentsPage: React.FC = () => {
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Date de Naissance"
                 type="date"
@@ -1150,7 +1153,7 @@ export const StudentsPage: React.FC = () => {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Lieu de Naissance"
                 value={studentForm.placeOfBirth}
@@ -1158,7 +1161,7 @@ export const StudentsPage: React.FC = () => {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Parent/Tuteur"
                 value={studentForm.parentName}
@@ -1167,7 +1170,7 @@ export const StudentsPage: React.FC = () => {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Téléphone Parent"
                 value={studentForm.parentPhone}
@@ -1176,7 +1179,7 @@ export const StudentsPage: React.FC = () => {
               />
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Adresse"
                 multiline
@@ -1187,7 +1190,7 @@ export const StudentsPage: React.FC = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ pb: { xs: 12, sm: 2 }, px: 3 }}>
           <Button onClick={() => setOpenAddEditDialog(false)}>Annuler</Button>
           <Button
             variant="contained"
@@ -1315,7 +1318,7 @@ export const StudentsPage: React.FC = () => {
             </Typography>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, gap: 1 }}>
+        <DialogActions sx={{ p: 3, pb: { xs: 12, sm: 3 }, gap: 1 }}>
           <Button onClick={() => setOpenExportDialog(false)} color="inherit" fullWidth={isMobile}>
             Annuler
           </Button>
@@ -1407,7 +1410,7 @@ export const StudentsPage: React.FC = () => {
             </>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3, gap: 1 }}>
+        <DialogActions sx={{ p: 3, pb: { xs: 12, sm: 3 }, gap: 1 }}>
           <Button 
             fullWidth 
             onClick={() => setOpenBulkDeleteDialog(false)}
@@ -1497,7 +1500,7 @@ export const StudentsPage: React.FC = () => {
 
           {isImporting && <LinearProgress sx={{ mt: 2 }} />}
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
+        <DialogActions sx={{ p: 3, pb: { xs: 12, sm: 3 } }}>
           <Button onClick={() => setOpenImportDialog(false)} disabled={isImporting}>Annuler</Button>
           <Button 
             variant="contained" 
@@ -1689,7 +1692,7 @@ export const StudentsPage: React.FC = () => {
             ))}
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
+        <DialogActions sx={{ p: 3, pb: { xs: 12, sm: 3 } }}>
           <Button onClick={() => setOpenCertificateDialog(false)}>Annuler</Button>
           <Button 
             variant="outlined" 

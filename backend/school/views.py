@@ -17,7 +17,7 @@ class ClassViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Filter classes by current active year by default
-        return Class.objects.filter(school_year__is_active=True).order_by('level', 'name')
+        return super().get_queryset().filter(school_year__is_active=True).order_by('level', 'name')
 
     def perform_create(self, serializer):
         from tenants.models import get_current_tenant
@@ -69,7 +69,7 @@ class StudentViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Filter students by current active year classes
-        return Student.objects.filter(school_class__school_year__is_active=True).order_by('last_name', 'first_name')
+        return super().get_queryset().filter(school_class__school_year__is_active=True).order_by('last_name', 'first_name')
 
     def perform_create(self, serializer):
         from tenants.models import get_current_tenant
@@ -310,7 +310,12 @@ class SchoolConfigurationViewSet(viewsets.ViewSet):
             target_est = tenant
 
         if not target_est:
-            return Response({"error": "Aucun établissement identifié."}, status=status.HTTP_400_BAD_REQUEST)
+            if request.method == 'GET':
+                 # Fallback to first available instance for public settings if none identified
+                 target_est = Establishment.objects.first()
+            
+            if not target_est:
+                return Response({"error": "Aucun établissement identifié."}, status=status.HTTP_400_BAD_REQUEST)
 
         obj, created = SchoolConfiguration.all_objects.get_or_create(establishment=target_est)
         

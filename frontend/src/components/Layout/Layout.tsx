@@ -740,6 +740,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
           overflowX: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          pb: { xs: 10, sm: 0 }, // Add space for bottom menu on mobile
         }}
       >
         {children}
@@ -753,7 +754,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
             bottom: 0,
             left: 0,
             right: 0,
-            zIndex: 9999,
+            zIndex: 1000, // Above content but below Modals/Menus (1300+)
             backgroundColor: 'background.paper',
             boxShadow: '0 -4px 20px rgba(0,0,0,0.1)'
           }}
@@ -764,16 +765,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
             value={location.pathname}
             sx={{ height: 72, borderTop: 1, borderColor: 'divider' }}
           >
-            {isSuperAdmin && location.pathname.startsWith('/superadmin') ? (
+            {isSuperAdmin && location.pathname.includes('/superadmin') ? (
               adminNavItems.slice(0, 5).map((item) => (
                 <BottomNavigationAction 
                   key={item.path} 
                   label={item.label.split(' ')[0]} 
                   value={item.path} 
                   icon={item.icon}
-                  onClick={() => {
-                    window.location.href = item.path!;
-                  }}
+                  onClick={() => navigate(item.path!)}
                   sx={{ 
                     minWidth: 'auto',
                     cursor: 'pointer',
@@ -794,9 +793,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, toggleTheme, currentMo
                   label={item.label} 
                   value={item.value} 
                   icon={item.icon}
-                  onClick={() => {
-                    window.location.href = item.value;
-                  }}
+                  onClick={() => navigate(item.value)}
                   sx={{ 
                     minWidth: 'auto',
                     cursor: 'pointer',

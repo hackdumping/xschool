@@ -24,7 +24,7 @@ class PaymentViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         from django.db.models import F
         # Only show payments for the student's current class
         # This automatically hides old payments after promotion
-        return Payment.objects.filter(
+        return super().get_queryset().filter(
             tranche__school_class=F('student__school_class')
         ).order_by('-id')
 

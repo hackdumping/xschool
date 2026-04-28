@@ -46,6 +46,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { addProfessionalHeader } from '@/utils/pdfHeader';
+import { FastTextField } from '@/components/common/FastTextField';
 
 const formatAmount = (amount: number) => {
   return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -319,19 +320,7 @@ export const ExpensesPage: React.FC = () => {
       showNotification('Erreur lors de l\'exportation', 'error');
     }
   };
-
-  if (loading) {
-    return (
-      <Box sx={{ width: '100%', mt: 4 }}>
-        <LinearProgress />
-        <Typography sx={{ mt: 2, textAlign: 'center' }} color="text.secondary">
-          Chargement des dépenses...
-        </Typography>
-      </Box>
-    );
-  }
-
-  const columns: GridColDef[] = [
+  const columns: GridColDef[] = React.useMemo(() => [
     {
       field: 'date',
       headerName: 'Date',
@@ -396,7 +385,19 @@ export const ExpensesPage: React.FC = () => {
         </Box>
       ),
     },
-  ];
+  ], [settings.currency_symbol]);
+
+  if (loading) {
+    return (
+      <Box sx={{ width: '100%', mt: 4 }}>
+        <LinearProgress />
+        <Typography sx={{ mt: 2, textAlign: 'center' }} color="text.secondary">
+          Chargement des dépenses...
+        </Typography>
+      </Box>
+    );
+  }
+
 
   return (
     <Box>
@@ -675,7 +676,7 @@ export const ExpensesPage: React.FC = () => {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid size={{ xs: 12 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Description"
                 value={newExpense.description}
@@ -683,7 +684,7 @@ export const ExpensesPage: React.FC = () => {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <FastTextField
                 fullWidth
                 label="Montant"
                 type="number"

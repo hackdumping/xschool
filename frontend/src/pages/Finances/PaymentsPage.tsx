@@ -56,6 +56,7 @@ import type { Payment, PaymentMode, PaymentWithStudent, Class, TrancheConfig, St
 import { useNotification } from '@/contexts/NotificationContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import { addProfessionalHeader } from '@/utils/pdfHeader';
+import { FastTextField } from '@/components/common/FastTextField';
 
 const getModeLabel = (mode: PaymentMode) => {
   switch (mode) {
@@ -386,18 +387,7 @@ export const PaymentsPage: React.FC = () => {
     setMenuPayment(null);
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ width: '100%', mt: 4 }}>
-        <LinearProgress />
-        <Typography sx={{ mt: 2, textAlign: 'center' }} color="text.secondary">
-          Chargement des finances...
-        </Typography>
-      </Box>
-    );
-  }
-
-  const columns: GridColDef<PaymentWithStudent>[] = [
+  const columns: GridColDef<PaymentWithStudent>[] = React.useMemo(() => [
     {
       field: 'receiptNumber',
       headerName: 'N° Reçu',
@@ -491,7 +481,19 @@ export const PaymentsPage: React.FC = () => {
         </Box>
       ),
     },
-  ];
+  ], []);
+
+  if (loading) {
+    return (
+      <Box sx={{ width: '100%', mt: 4 }}>
+        <LinearProgress />
+        <Typography sx={{ mt: 2, textAlign: 'center' }} color="text.secondary">
+          Chargement des finances...
+        </Typography>
+      </Box>
+    );
+  }
+
 
   const getTrancheBalance = (studentId: string | number, trancheId: string | number) => {
     const tranche = tranchesList.find(t => t.id === trancheId);
@@ -959,7 +961,7 @@ export const PaymentsPage: React.FC = () => {
           {activeStep === 2 && (
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
+                <FastTextField
                   fullWidth
                   label="Montant"
                   type="number"
@@ -994,7 +996,7 @@ export const PaymentsPage: React.FC = () => {
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
+                <FastTextField
                   fullWidth
                   label="N° Reçu"
                   value={newPayment.receiptNumber}
@@ -1002,7 +1004,7 @@ export const PaymentsPage: React.FC = () => {
                 />
               </Grid>
               <Grid size={{ xs: 12 }}>
-                <TextField
+                <FastTextField
                   fullWidth
                   label="Notes"
                   multiline
